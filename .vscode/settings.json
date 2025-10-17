@@ -1,0 +1,46 @@
+{
+  // Dart & Flutter設定
+  "dart.flutterSdkPath": "/Users/kouheikameyama/flutter",
+  "dart.previewFlutterUiGuides": true,
+  "dart.previewFlutterUiGuidesCustomTracking": true,
+
+  // デバッグ設定
+  "dart.debugExternalPackageLibraries": false,
+  "dart.debugSdkLibraries": false,
+
+  // エディタ設定
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
+
+  // Dart固有の設定
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "editor.rulers": [80],
+    "editor.selectionHighlight": false,
+    "editor.suggestSelection": "first",
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": "off"
+  },
+
+  // ファイル除外設定
+  "files.exclude": {
+    "**/.dart_tool": true,
+    "**/.flutter-plugins": true,
+    "**/.flutter-plugins-dependencies": true,
+    "**/.packages": true,
+    "**/pubspec.lock": false
+  },
+
+  // 検索除外設定
+  "search.exclude": {
+    "**/.dart_tool": true,
+    "**/build": true,
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/*.freezed.dart": true,
+    "**/*.g.dart": true
+  }
+}

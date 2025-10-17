@@ -1,0 +1,53 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug (iOS Simulator)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "ios",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "Debug (Android Emulator)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "android",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "Profile (iOS)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "ios",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "Profile (Android)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "android",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "Release (iOS)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "ios",
+      "flutterMode": "release"
+    },
+    {
+      "name": "Release (Android)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "android",
+      "flutterMode": "release"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/circle_model.dart';
+import '../services/circle_service.dart';
+
+// CircleServiceのProvider
+final circleServiceProvider = Provider<CircleService>((ref) => CircleService());
+
+// 選択中のサークルIDのProvider
+final selectedCircleIdProvider = StateProvider<String?>((ref) => null);
+
+// サークル情報のProvider
+final circleProvider = StreamProvider.family<CircleModel?, String>((ref, circleId) {
+  final circleService = ref.watch(circleServiceProvider);
+  return circleService.getCircleStream(circleId);
+});
+
+// 選択中のサークル情報のProvider
+final selectedCircleProvider = StreamProvider<CircleModel?>((ref) {
+  final circleId = ref.watch(selectedCircleIdProvider);
+  if (circleId == null) {
+    return Stream.value(null);
+  }
+
+  final circleService = ref.watch(circleServiceProvider);
+  return circleService.getCircleStream(circleId);
+});
+
+// ユーザーが所属するサークル一覧のProvider
+final userCirclesProvider = StreamProvider.family<List<CircleModel>, String>((ref, userId) {
+  final circleService = ref.watch(circleServiceProvider);
+  return circleService.getUserCircles(userId);
+});
+
+// サークル作成のProvider
+final createCircleProvider = Provider<Future<String> Function({
+  required String name,
+  required String description,
+  required String adminId,
+  String? iconUrl,
+})>((ref) {
+  return ({
+    required String name,
+    required String description,
+    required String adminId,
+    String? iconUrl,
+  }) async {
+    final circleService = ref.read(circleServiceProvider);
+    return await circleService.createCircle(
+      name: name,
+      description: description,
+      adminId: adminId,
+      iconUrl: iconUrl,
+    );
+  };
+});
+
+// メンバー追加のProvider
+final addMemberProvider = Provider<Future<void> Function({
+  required String circleId,
+  required String userId,
+  String role,
+  List<String> tags,
+})>((ref) {
+  return ({
+    required String circleId,
+    required String userId,
+    String role = 'member',
+    List<String> tags = const [],
+  }) async {
+    final circleService = ref.read(circleServiceProvider);
+    await circleService.addMember(
+      circleId: circleId,
+      userId: userId,
+      role: role,
+      tags: tags,
+    );
+  };
+});
+
+// メンバー削除のProvider
+final removeMemberProvider = Provider<Future<void> Function({
+  required String circleId,
+  required String userId,
+})>((ref) {
+  return ({
+    required String circleId,
+    required String userId,
+  }) async {
+    final circleService = ref.read(circleServiceProvider);
+    await circleService.removeMember(
+      circleId: circleId,
+      userId: userId,
+    );
+  };
+});
