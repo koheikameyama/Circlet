@@ -25,6 +25,14 @@
       "flutterMode": "debug"
     },
     {
+      "name": "Debug (Android実機 - A301OP)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "c736b07e",
+      "flutterMode": "debug"
+    },
+    {
       "name": "Profile (iOS)",
       "type": "dart",
       "request": "launch",
