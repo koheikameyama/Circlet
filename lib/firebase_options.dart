@@ -54,19 +54,19 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_ANDROID_API_KEY',
-    appId: 'YOUR_ANDROID_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyC0siHjYb8rgGrseNUsr5Ik5Zv0aQspBkU',
+    appId: '1:442058714841:android:a3bac48946ab3e658158c8',
+    messagingSenderId: '442058714841',
+    projectId: 'grumane-3d818',
+    storageBucket: 'grumane-3d818.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_IOS_API_KEY',
-    appId: 'YOUR_IOS_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyBCuEoLjIcAvo1M_sRIONOms86F3yQ9S-k',
+    appId: '1:442058714841:ios:a80871002d5a44758158c8',
+    messagingSenderId: '442058714841',
+    projectId: 'grumane-3d818',
+    storageBucket: 'grumane-3d818.firebasestorage.app',
     iosBundleId: 'com.grumane.grumane',
   );
 

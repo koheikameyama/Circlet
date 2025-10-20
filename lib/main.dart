@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-// import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
-// import 'firebase_options.dart';
-// import 'config/firebase_emulator_config.dart';
-// import 'providers/auth_provider.dart';
+import 'firebase_options.dart';
+import 'config/firebase_emulator_config.dart';
+import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/circle_selection_screen.dart';
 import 'screens/participant/participant_home_screen.dart';
@@ -17,13 +17,13 @@ void main() async {
   // Initialize Japanese locale for date formatting
   await initializeDateFormatting('ja');
 
-  // Firebase初期化 - Temporarily disabled for UI testing
-  // await Firebase.initializeApp(
-  //   options: DefaultFirebaseOptions.currentPlatform,
-  // );
+  // Firebase初期化
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // デバッグモードの場合、Emulatorに接続
-  // FirebaseEmulatorConfig.connectToEmulator();
+  FirebaseEmulatorConfig.connectToEmulator();
 
   runApp(
     const ProviderScope(
@@ -71,19 +71,18 @@ class GrumaneApp extends ConsumerWidget {
     return GoRouter(
       initialLocation: '/login',
       redirect: (context, state) {
-        // Temporarily disabled auth check for UI testing
-        // final authState = ref.read(authStateProvider);
-        // final isLoggedIn = authState.value != null;
+        final authState = ref.read(authStateProvider);
+        final isLoggedIn = authState.value != null;
 
-        // // ログイン画面へのアクセス
-        // if (state.matchedLocation == '/login') {
-        //   return isLoggedIn ? '/circles' : null;
-        // }
+        // ログイン画面へのアクセス
+        if (state.matchedLocation == '/login') {
+          return isLoggedIn ? '/circles' : null;
+        }
 
-        // // 認証が必要なページへのアクセス
-        // if (!isLoggedIn) {
-        //   return '/login';
-        // }
+        // 認証が必要なページへのアクセス
+        if (!isLoggedIn) {
+          return '/login';
+        }
 
         return null;
       },

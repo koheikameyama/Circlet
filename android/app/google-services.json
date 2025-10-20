@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "442058714841",
+    "project_id": "grumane-3d818",
+    "storage_bucket": "grumane-3d818.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:442058714841:android:a3bac48946ab3e658158c8",
+        "android_client_info": {
+          "package_name": "com.grumane.grumane"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0siHjYb8rgGrseNUsr5Ik5Zv0aQspBkU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
