@@ -10,7 +10,7 @@ class CircleService {
   Future<String> createCircle({
     required String name,
     required String description,
-    required String adminId,
+    required String creatorUserId,
     String? iconUrl,
   }) async {
     try {
@@ -20,10 +20,9 @@ class CircleService {
         name: name,
         description: description,
         iconUrl: iconUrl,
-        adminId: adminId,
         members: [
           CircleMember(
-            userId: adminId,
+            userId: creatorUserId,
             role: 'admin',
             tags: [],
             joinedAt: DateTime.now(),
@@ -39,7 +38,7 @@ class CircleService {
           .set(circle.toFirestore());
 
       // ユーザーのcircleIdsを更新
-      await _firestore.collection('users').doc(adminId).update({
+      await _firestore.collection('users').doc(creatorUserId).update({
         'circleIds': FieldValue.arrayUnion([circleId]),
         'updatedAt': Timestamp.now(),
       });
@@ -75,14 +74,41 @@ class CircleService {
   }
 
   // ユーザーが所属するサークル一覧を取得
-  Stream<List<CircleModel>> getUserCircles(String userId) {
-    return _firestore
-        .collection('circles')
-        .where('members', arrayContains: {'userId': userId})
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => CircleModel.fromFirestore(doc))
-            .toList());
+  Stream<List<CircleModel>> getUserCircles(String userId) async* {
+    // ユーザー情報を取得してcircleIdsを取得
+    await for (final userDoc in _firestore.collection('users').doc(userId).snapshots()) {
+      if (!userDoc.exists) {
+        yield [];
+        continue;
+      }
+
+      final userData = userDoc.data();
+      final circleIds = (userData?['circleIds'] as List<dynamic>?)?.cast<String>() ?? [];
+
+      if (circleIds.isEmpty) {
+        yield [];
+        continue;
+      }
+
+      // circleIdsに基づいてサークルを取得
+      // Firestoreの制限により、in演算子は最大10件まで
+      final circles = <CircleModel>[];
+
+      // 10件ずつに分割してクエリ
+      for (var i = 0; i < circleIds.length; i += 10) {
+        final batch = circleIds.skip(i).take(10).toList();
+        final snapshot = await _firestore
+            .collection('circles')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+
+        circles.addAll(
+          snapshot.docs.map((doc) => CircleModel.fromFirestore(doc)),
+        );
+      }
+
+      yield circles;
+    }
   }
 
   // サークル情報を更新
@@ -201,6 +227,52 @@ class CircleService {
     }
   }
 
+  // メンバーの役割を更新（管理者権限の付与/剥奪）
+  Future<void> updateMemberRole({
+    required String circleId,
+    required String userId,
+    required String role, // 'admin' or 'member'
+  }) async {
+    try {
+      final circle = await getCircle(circleId);
+      if (circle == null) {
+        throw Exception('Circle not found');
+      }
+
+      // 少なくとも1人の管理者が必要
+      if (role != 'admin') {
+        final adminCount = circle.members.where((m) => m.role == 'admin').length;
+        final isCurrentUserAdmin = circle.members
+            .firstWhere((m) => m.userId == userId)
+            .role == 'admin';
+
+        if (isCurrentUserAdmin && adminCount <= 1) {
+          throw Exception('少なくとも1人の管理者が必要です');
+        }
+      }
+
+      final updatedMembers = circle.members.map((m) {
+        if (m.userId == userId) {
+          return CircleMember(
+            userId: m.userId,
+            role: role,
+            tags: m.tags,
+            joinedAt: m.joinedAt,
+          );
+        }
+        return m;
+      }).map((m) => m.toMap()).toList();
+
+      await _firestore.collection('circles').doc(circleId).update({
+        'members': updatedMembers,
+        'updatedAt': Timestamp.now(),
+      });
+    } catch (e) {
+      print('Error updating member role: $e');
+      rethrow;
+    }
+  }
+
   // サークルを削除
   Future<void> deleteCircle(String circleId) async {
     try {
@@ -244,5 +316,43 @@ class CircleService {
       return parts[0];
     }
     return null;
+  }
+
+  // デバッグ用：ダミーメンバーを追加
+  Future<void> addDummyMember({
+    required String circleId,
+    required String name,
+    String role = 'member',
+  }) async {
+    try {
+      // ダミーのユーザーIDを生成
+      final dummyUserId = 'dummy_${_uuid.v4().substring(0, 8)}';
+
+      final member = CircleMember(
+        userId: dummyUserId,
+        role: role,
+        tags: [],
+        joinedAt: DateTime.now(),
+      );
+
+      // サークルにメンバーを追加
+      await _firestore.collection('circles').doc(circleId).update({
+        'members': FieldValue.arrayUnion([member.toMap()]),
+        'updatedAt': Timestamp.now(),
+      });
+
+      // ダミーユーザーのドキュメントも作成（オプション）
+      await _firestore.collection('users').doc(dummyUserId).set({
+        'userId': dummyUserId,
+        'name': name,
+        'lineUserId': 'dummy_line_$dummyUserId',
+        'circleIds': [circleId],
+        'createdAt': Timestamp.now(),
+        'updatedAt': Timestamp.now(),
+      });
+    } catch (e) {
+      print('Error adding dummy member: $e');
+      rethrow;
+    }
   }
 }

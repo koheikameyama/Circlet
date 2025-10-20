@@ -2,20 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
-// import '../../providers/circle_provider.dart'; // Temporarily disabled
-// import '../../models/circle_model.dart'; // Temporarily disabled
+import '../../providers/circle_provider.dart';
+import '../../models/circle_model.dart';
 
 class CircleSelectionScreen extends ConsumerWidget {
   const CircleSelectionScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Temporarily using mock data instead of Firebase
-    final mockCircles = [
-      {'id': '1', 'name': 'テニスサークル', 'members': 15, 'isAdmin': true},
-      {'id': '2', 'name': 'フットサル部', 'members': 20, 'isAdmin': false},
-      {'id': '3', 'name': 'ランニングクラブ', 'members': 8, 'isAdmin': false},
-    ];
+    final currentUser = ref.watch(authStateProvider).value;
+
+    if (currentUser == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final circlesAsync = ref.watch(userCirclesProvider(currentUser.uid));
 
     return Scaffold(
       appBar: AppBar(
@@ -74,44 +77,60 @@ class CircleSelectionScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: mockCircles.isEmpty
-          ? _buildEmptyState(context)
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: mockCircles.length,
-              itemBuilder: (context, index) {
-                final circle = mockCircles[index];
-                final isAdmin = circle['isAdmin'] as bool;
+      body: circlesAsync.when(
+        data: (circles) {
+          if (circles.isEmpty) {
+            return _buildEmptyState(context);
+          }
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    leading: const CircleAvatar(
-                      child: Icon(Icons.groups),
-                    ),
-                    title: Text(
-                      circle['name'] as String,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${circle['members']}人 • ${isAdmin ? '管理者' : 'メンバー'}',
-                    ),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {
-                      final route = isAdmin
-                          ? '/admin/${circle['id']}'
-                          : '/participant/${circle['id']}';
-                      context.go(route);
-                    },
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: circles.length,
+            itemBuilder: (context, index) {
+              final circle = circles[index];
+
+              // メンバーリストから現在のユーザーを検索してroleをチェック
+              final currentMember = circle.members.firstWhere(
+                (member) => member.userId == currentUser.uid,
+                orElse: () => circle.members.first,
+              );
+              final isAdmin = currentMember.role == 'admin';
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.groups),
                   ),
-                );
-              },
-            ),
+                  title: Text(
+                    circle.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${circle.members.length}人 • ${isAdmin ? '管理者' : 'メンバー'}',
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    final route = isAdmin
+                        ? '/admin/${circle.circleId}'
+                        : '/participant/${circle.circleId}';
+                    context.go(route);
+                  },
+                ),
+              );
+            },
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Text('エラーが発生しました: $error'),
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          _showCreateCircleDialog(context);
+          _showCreateCircleDialog(context, ref, currentUser.uid);
         },
         icon: const Icon(Icons.add),
         label: const Text('サークル作成'),
@@ -149,13 +168,13 @@ class CircleSelectionScreen extends ConsumerWidget {
     );
   }
 
-  void _showCreateCircleDialog(BuildContext context) {
+  void _showCreateCircleDialog(BuildContext context, WidgetRef ref, String userId) {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('サークル作成'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -180,11 +199,11 @@ class CircleSelectionScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('キャンセル'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (nameController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('サークル名を入力してください')),
@@ -192,13 +211,36 @@ class CircleSelectionScreen extends ConsumerWidget {
                 return;
               }
 
-              // Temporarily disabled Firebase circle creation
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content:
-                        Text('「${nameController.text}」を作成しました (デモモード)')),
-              );
+              // ダイアログを閉じる
+              Navigator.of(dialogContext).pop();
+
+              try {
+                // サークルを作成
+                final createCircle = ref.read(createCircleProvider);
+                await createCircle(
+                  name: nameController.text,
+                  description: descriptionController.text,
+                  creatorUserId: userId,
+                );
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('「${nameController.text}」を作成しました'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('サークルの作成に失敗しました: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             child: const Text('作成'),
           ),

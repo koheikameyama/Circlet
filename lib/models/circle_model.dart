@@ -37,7 +37,6 @@ class CircleModel {
   final String name;
   final String description;
   final String? iconUrl;
-  final String adminId;
   final List<CircleMember> members;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -47,7 +46,6 @@ class CircleModel {
     required this.name,
     required this.description,
     this.iconUrl,
-    required this.adminId,
     required this.members,
     required this.createdAt,
     required this.updatedAt,
@@ -60,7 +58,6 @@ class CircleModel {
       name: data['name'] ?? '',
       description: data['description'] ?? '',
       iconUrl: data['iconUrl'],
-      adminId: data['adminId'] ?? '',
       members: (data['members'] as List<dynamic>?)
               ?.map((m) => CircleMember.fromMap(m as Map<String, dynamic>))
               .toList() ??
@@ -75,7 +72,6 @@ class CircleModel {
       'name': name,
       'description': description,
       'iconUrl': iconUrl,
-      'adminId': adminId,
       'members': members.map((m) => m.toMap()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -87,7 +83,6 @@ class CircleModel {
     String? name,
     String? description,
     String? iconUrl,
-    String? adminId,
     List<CircleMember>? members,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -97,14 +92,17 @@ class CircleModel {
       name: name ?? this.name,
       description: description ?? this.description,
       iconUrl: iconUrl ?? this.iconUrl,
-      adminId: adminId ?? this.adminId,
       members: members ?? this.members,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
-  bool isAdmin(String userId) => adminId == userId;
+  // メンバーのroleで管理者判定
+  bool isAdmin(String userId) {
+    final member = members.where((m) => m.userId == userId).firstOrNull;
+    return member?.role == 'admin';
+  }
 
   bool isMember(String userId) =>
       members.any((member) => member.userId == userId);

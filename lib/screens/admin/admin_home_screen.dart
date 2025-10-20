@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-// import '../../providers/circle_provider.dart'; // Temporarily disabled
+import '../../providers/circle_provider.dart';
+import '../../providers/auth_provider.dart';
 // import '../../providers/event_provider.dart'; // Temporarily disabled
 // import '../../models/event_model.dart'; // Temporarily disabled
 
@@ -275,83 +276,211 @@ class _AdminEventCard extends StatelessWidget {
 }
 
 // 管理者用メンバータブ
-class _AdminMembersTab extends StatelessWidget {
+class _AdminMembersTab extends ConsumerWidget {
   final String circleId;
 
   const _AdminMembersTab({required this.circleId});
 
   @override
-  Widget build(BuildContext context) {
-    // Mock member data
-    final mockMembers = [
-      {'name': '山田太郎', 'role': 'admin'},
-      {'name': '佐藤花子', 'role': 'member'},
-      {'name': '鈴木一郎', 'role': 'member'},
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final circleAsync = ref.watch(circleProvider(circleId));
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Card(
-            child: Padding(
+    return circleAsync.when(
+      data: (circle) {
+        if (circle == null) {
+          return const Center(child: Text('サークルが見つかりません'));
+        }
+
+        return Column(
+          children: [
+            // 招待QRコード
+            Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const Text(
-                    '招待用QRコード',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      const Text(
+                        '招待用QRコード',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      QrImageView(
+                        data: 'invite://circle/$circleId',
+                        version: QrVersions.auto,
+                        size: 200,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  QrImageView(
-                    data: 'invite://circle/$circleId',
-                    version: QrVersions.auto,
-                    size: 200,
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: mockMembers.length,
-            itemBuilder: (context, index) {
-              final member = mockMembers[index];
-              final isAdmin = member['role'] == 'admin';
-              return Card(
+
+            // デバッグ用：ダミーメンバー追加ボタン
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                color: Colors.orange.shade50,
                 child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: isAdmin ? Colors.blue : Colors.grey,
-                    child: Icon(
-                      isAdmin ? Icons.admin_panel_settings : Icons.person,
-                      color: Colors.white,
-                    ),
+                  leading: const Icon(Icons.bug_report, color: Colors.orange),
+                  title: const Text('デバッグ: テストメンバー追加'),
+                  trailing: ElevatedButton.icon(
+                    onPressed: () => _addDummyMembers(context, ref, circleId),
+                    icon: const Icon(Icons.person_add),
+                    label: const Text('追加'),
                   ),
-                  title: Text(member['name'] as String),
-                  subtitle: Text(member['role'] as String),
-                  trailing: !isAdmin
-                      ? IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('メンバーを削除しました (デモモード)')),
-                            );
-                          },
-                        )
-                      : null,
                 ),
-              );
-            },
-          ),
-        ),
-      ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // メンバーリスト
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: circle.members.length,
+                itemBuilder: (context, index) {
+                  final member = circle.members[index];
+                  final isAdmin = member.role == 'admin';
+                  final isDummy = member.userId.startsWith('dummy_');
+
+                  return Card(
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: isAdmin ? Colors.blue : Colors.grey,
+                        child: Icon(
+                          isAdmin ? Icons.admin_panel_settings : Icons.person,
+                          color: Colors.white,
+                        ),
+                      ),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: FutureBuilder<String>(
+                              future: _getUserName(ref, member.userId),
+                              builder: (context, snapshot) {
+                                return Text(snapshot.data ?? member.userId);
+                              },
+                            ),
+                          ),
+                          if (isDummy)
+                            const Chip(
+                              label: Text('テスト', style: TextStyle(fontSize: 10)),
+                              backgroundColor: Colors.orange,
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                            ),
+                        ],
+                      ),
+                      subtitle: Text(isAdmin ? '管理者' : 'メンバー'),
+                      trailing: !isAdmin
+                          ? IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () async {
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (dialogContext) => AlertDialog(
+                                    title: const Text('メンバー削除'),
+                                    content: const Text('このメンバーを削除しますか？'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                                        child: const Text('キャンセル'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                                        child: const Text('削除'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirmed == true && context.mounted) {
+                                  try {
+                                    final removeMember = ref.read(removeMemberProvider);
+                                    await removeMember(
+                                      circleId: circleId,
+                                      userId: member.userId,
+                                    );
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('メンバーを削除しました'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('削除に失敗しました: $e'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                            )
+                          : null,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(child: Text('エラー: $error')),
     );
+  }
+
+  Future<String> _getUserName(WidgetRef ref, String userId) async {
+    try {
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.getUserData(userId);
+      return user?.name ?? userId;
+    } catch (e) {
+      return userId;
+    }
+  }
+
+  Future<void> _addDummyMembers(BuildContext context, WidgetRef ref, String circleId) async {
+    final dummyNames = ['田中太郎', '佐藤花子', '鈴木一郎', '高橋次郎', '伊藤美咲'];
+
+    try {
+      final circleService = ref.read(circleServiceProvider);
+
+      for (final name in dummyNames) {
+        await circleService.addDummyMember(
+          circleId: circleId,
+          name: name,
+        );
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${dummyNames.length}人のテストメンバーを追加しました'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('追加に失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 

@@ -35,20 +35,20 @@ final userCirclesProvider = StreamProvider.family<List<CircleModel>, String>((re
 final createCircleProvider = Provider<Future<String> Function({
   required String name,
   required String description,
-  required String adminId,
+  required String creatorUserId,
   String? iconUrl,
 })>((ref) {
   return ({
     required String name,
     required String description,
-    required String adminId,
+    required String creatorUserId,
     String? iconUrl,
   }) async {
     final circleService = ref.read(circleServiceProvider);
     return await circleService.createCircle(
       name: name,
       description: description,
-      adminId: adminId,
+      creatorUserId: creatorUserId,
       iconUrl: iconUrl,
     );
   };
@@ -90,6 +90,26 @@ final removeMemberProvider = Provider<Future<void> Function({
     await circleService.removeMember(
       circleId: circleId,
       userId: userId,
+    );
+  };
+});
+
+// メンバーの役割更新のProvider
+final updateMemberRoleProvider = Provider<Future<void> Function({
+  required String circleId,
+  required String userId,
+  required String role,
+})>((ref) {
+  return ({
+    required String circleId,
+    required String userId,
+    required String role,
+  }) async {
+    final circleService = ref.read(circleServiceProvider);
+    await circleService.updateMemberRole(
+      circleId: circleId,
+      userId: userId,
+      role: role,
     );
   };
 });

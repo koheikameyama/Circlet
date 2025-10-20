@@ -23,21 +23,136 @@ class AuthService {
         throw Exception('LINE login failed: No access token');
       }
 
-      // LINEのアクセストークンを使ってFirebase認証
-      final credential = await _auth.signInAnonymously();
+      final lineUserId = result.userProfile?.userId ?? '';
+      final name = result.userProfile?.displayName ?? 'Unknown User';
+      final profileImageUrl = result.userProfile?.pictureUrl;
 
-      // ユーザー情報をFirestoreに保存
-      await _saveUserToFirestore(
-        userId: credential.user!.uid,
-        lineUserId: result.userProfile?.userId ?? '',
-        name: result.userProfile?.displayName ?? 'Unknown User',
-        profileImageUrl: result.userProfile?.pictureUrl,
-      );
+      // LINE IDで既存ユーザーを検索
+      final existingUser = await _findUserByLineId(lineUserId);
 
-      return credential;
+      if (existingUser != null) {
+        // 既存ユーザーが見つかった場合
+        final credential = await _auth.signInAnonymously();
+
+        // 既存のユーザーデータを新しいFirebase UIDに移行
+        await _migrateUserData(
+          oldUserId: existingUser.userId,
+          newUserId: credential.user!.uid,
+          lineUserId: lineUserId,
+          name: name,
+          profileImageUrl: profileImageUrl,
+          circleIds: existingUser.circleIds,
+        );
+
+        return credential;
+      } else {
+        // 新規ユーザーの場合
+        final credential = await _auth.signInAnonymously();
+
+        // ユーザー情報をFirestoreに保存
+        await _saveUserToFirestore(
+          userId: credential.user!.uid,
+          lineUserId: lineUserId,
+          name: name,
+          profileImageUrl: profileImageUrl,
+        );
+
+        return credential;
+      }
     } catch (e) {
       print('LINE login error: $e');
       return null;
+    }
+  }
+
+  // LINE IDで既存ユーザーを検索
+  Future<UserModel?> _findUserByLineId(String lineUserId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('users')
+          .where('lineUserId', isEqualTo: lineUserId)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return UserModel.fromFirestore(querySnapshot.docs.first);
+      }
+      return null;
+    } catch (e) {
+      print('Error finding user by LINE ID: $e');
+      return null;
+    }
+  }
+
+  // ユーザーデータを新しいFirebase UIDに移行
+  Future<void> _migrateUserData({
+    required String oldUserId,
+    required String newUserId,
+    required String lineUserId,
+    required String name,
+    String? profileImageUrl,
+    required List<String> circleIds,
+  }) async {
+    try {
+      // 新しいFirebase UIDでユーザーデータを作成
+      final user = UserModel(
+        userId: newUserId,
+        name: name,
+        lineUserId: lineUserId,
+        profileImageUrl: profileImageUrl,
+        circleIds: circleIds,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await _firestore.collection('users').doc(newUserId).set(user.toFirestore());
+
+      // サークルのメンバー情報を更新
+      for (final circleId in circleIds) {
+        await _updateCircleMemberUserId(circleId, oldUserId, newUserId);
+      }
+
+      // 古いユーザーデータを削除
+      await _firestore.collection('users').doc(oldUserId).delete();
+    } catch (e) {
+      print('Error migrating user data: $e');
+      rethrow;
+    }
+  }
+
+  // サークルのメンバー情報でユーザーIDを更新
+  Future<void> _updateCircleMemberUserId(
+    String circleId,
+    String oldUserId,
+    String newUserId,
+  ) async {
+    try {
+      final circleDoc = await _firestore.collection('circles').doc(circleId).get();
+
+      if (!circleDoc.exists) return;
+
+      final data = circleDoc.data();
+      if (data == null) return;
+
+      final members = (data['members'] as List<dynamic>?) ?? [];
+
+      // メンバーリストでユーザーIDを更新
+      final updatedMembers = members.map((member) {
+        if (member['userId'] == oldUserId) {
+          return {
+            ...member as Map<String, dynamic>,
+            'userId': newUserId,
+          };
+        }
+        return member;
+      }).toList();
+
+      await _firestore.collection('circles').doc(circleId).update({
+        'members': updatedMembers,
+        'updatedAt': Timestamp.now(),
+      });
+    } catch (e) {
+      print('Error updating circle member: $e');
     }
   }
 
