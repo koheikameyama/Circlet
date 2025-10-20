@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-// import '../../providers/auth_provider.dart'; // Temporarily disabled
+import '../../providers/auth_provider.dart';
 // import '../../providers/circle_provider.dart'; // Temporarily disabled
 // import '../../models/circle_model.dart'; // Temporarily disabled
 
@@ -23,9 +23,53 @@ class CircleSelectionScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              // Temporarily disabled Firebase logout
-              context.go('/login');
+            onPressed: () async {
+              // 元のcontextを保存
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+              // ログアウト確認ダイアログ
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('ログアウト'),
+                  content: const Text('ログアウトしますか？'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: const Text('キャンセル'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      child: const Text('ログアウト'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                try {
+                  // ログアウト処理
+                  final authService = ref.read(authServiceProvider);
+                  await authService.signOut();
+
+                  // ログイン画面に遷移（スタックをクリア）
+                  if (context.mounted) {
+                    // すべての履歴をクリアしてログイン画面へ
+                    while (context.canPop()) {
+                      context.pop();
+                    }
+                    context.pushReplacement('/login');
+                  }
+                } catch (e) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('ログアウトに失敗しました: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
           ),
         ],

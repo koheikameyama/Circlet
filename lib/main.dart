@@ -12,6 +12,54 @@ import 'screens/auth/circle_selection_screen.dart';
 import 'screens/participant/participant_home_screen.dart';
 import 'screens/admin/admin_home_screen.dart';
 
+// GoRouterのProvider
+final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authStateProvider);
+
+  return GoRouter(
+    initialLocation: '/login',
+    redirect: (context, state) {
+      final isLoggedIn = authState.value != null;
+
+      // ログイン画面へのアクセス
+      if (state.matchedLocation == '/login') {
+        return isLoggedIn ? '/circles' : null;
+      }
+
+      // 認証が必要なページへのアクセス
+      if (!isLoggedIn) {
+        return '/login';
+      }
+
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/circles',
+        builder: (context, state) => const CircleSelectionScreen(),
+      ),
+      GoRoute(
+        path: '/participant/:circleId',
+        builder: (context, state) {
+          final circleId = state.pathParameters['circleId']!;
+          return ParticipantHomeScreen(circleId: circleId);
+        },
+      ),
+      GoRoute(
+        path: '/admin/:circleId',
+        builder: (context, state) {
+          final circleId = state.pathParameters['circleId']!;
+          return AdminHomeScreen(circleId: circleId);
+        },
+      ),
+    ],
+  );
+});
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -41,7 +89,7 @@ class GrumaneApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = _createRouter(ref);
+    final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
       title: 'Grumane - サークル管理',
@@ -68,52 +116,6 @@ class GrumaneApp extends ConsumerWidget {
         ),
       ),
       routerConfig: router,
-    );
-  }
-
-  GoRouter _createRouter(WidgetRef ref) {
-    return GoRouter(
-      initialLocation: '/login',
-      redirect: (context, state) {
-        final authState = ref.read(authStateProvider);
-        final isLoggedIn = authState.value != null;
-
-        // ログイン画面へのアクセス
-        if (state.matchedLocation == '/login') {
-          return isLoggedIn ? '/circles' : null;
-        }
-
-        // 認証が必要なページへのアクセス
-        if (!isLoggedIn) {
-          return '/login';
-        }
-
-        return null;
-      },
-      routes: [
-        GoRoute(
-          path: '/login',
-          builder: (context, state) => const LoginScreen(),
-        ),
-        GoRoute(
-          path: '/circles',
-          builder: (context, state) => const CircleSelectionScreen(),
-        ),
-        GoRoute(
-          path: '/participant/:circleId',
-          builder: (context, state) {
-            final circleId = state.pathParameters['circleId']!;
-            return ParticipantHomeScreen(circleId: circleId);
-          },
-        ),
-        GoRoute(
-          path: '/admin/:circleId',
-          builder: (context, state) {
-            final circleId = state.pathParameters['circleId']!;
-            return AdminHomeScreen(circleId: circleId);
-          },
-        ),
-      ],
     );
   }
 }
