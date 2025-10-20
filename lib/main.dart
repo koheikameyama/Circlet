@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'firebase_options.dart';
 import 'config/firebase_emulator_config.dart';
 import 'providers/auth_provider.dart';
@@ -16,6 +17,9 @@ void main() async {
 
   // Initialize Japanese locale for date formatting
   await initializeDateFormatting('ja');
+
+  // LINE SDK初期化
+  await LineSDK.instance.setup('2008326126');
 
   // Firebase初期化
   await Firebase.initializeApp(
