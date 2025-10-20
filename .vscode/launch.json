@@ -2,11 +2,18 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug (iOS Simulator)",
+      "name": "Debug (iPhone SE)",
       "type": "dart",
       "request": "launch",
       "program": "lib/main.dart",
-      "deviceId": "ios",
+      "deviceId": "EF2D2DBE-AAC5-4BE9-BE97-9697704ECB8E",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "Debug (iOS Simulator - Auto)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
       "flutterMode": "debug"
     },
     {

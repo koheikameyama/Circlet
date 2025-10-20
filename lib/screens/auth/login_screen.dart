@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../providers/auth_provider.dart';
+// import '../../providers/auth_provider.dart'; // Temporarily disabled
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -19,19 +19,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      final authService = ref.read(authServiceProvider);
-      final credential = await authService.signInWithLine();
+      // Temporarily disabled Firebase login - just navigate to circles
+      await Future.delayed(const Duration(seconds: 1)); // Simulate login delay
 
-      if (credential != null && mounted) {
+      if (mounted) {
         context.go('/circles');
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ログインに失敗しました'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
+
+      // Original code (temporarily disabled):
+      // final authService = ref.read(authServiceProvider);
+      // final credential = await authService.signInWithLine();
+      //
+      // if (credential != null && mounted) {
+      //   context.go('/circles');
+      // } else if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(
+      //       content: Text('ログインに失敗しました'),
+      //       backgroundColor: Colors.red,
+      //     ),
+      //   );
+      // }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

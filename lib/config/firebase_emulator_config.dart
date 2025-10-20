@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 
 /// Firebase Emulatorに接続するための設定
 class FirebaseEmulatorConfig {
-  static const bool useEmulator = kDebugMode; // デバッグモードでのみエミュレータを使用
+  static const bool useEmulator = false; // 一時的にEmulatorを無効化
 
   static void connectToEmulator() {
     if (!useEmulator) return;

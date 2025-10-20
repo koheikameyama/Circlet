@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/circle_provider.dart';
-import '../../providers/event_provider.dart';
-import '../../models/event_model.dart';
+// import '../../providers/auth_provider.dart'; // Temporarily disabled
+// import '../../providers/circle_provider.dart'; // Temporarily disabled
+// import '../../providers/event_provider.dart'; // Temporarily disabled
+// import '../../models/event_model.dart'; // Temporarily disabled
 
 class ParticipantHomeScreen extends ConsumerStatefulWidget {
   final String circleId;
@@ -26,22 +26,15 @@ class _ParticipantHomeScreenState
 
   @override
   Widget build(BuildContext context) {
-    final circleAsync = ref.watch(circleProvider(widget.circleId));
-    final userId = ref.watch(currentUserIdProvider);
-
     return Scaffold(
       appBar: AppBar(
-        title: circleAsync.when(
-          data: (circle) => Text(circle?.name ?? 'サークル'),
-          loading: () => const Text('読み込み中...'),
-          error: (_, __) => const Text('エラー'),
-        ),
+        title: const Text('テニスサークル'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/circles'),
         ),
       ),
-      body: _buildBody(userId),
+      body: _buildBody(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
@@ -71,20 +64,16 @@ class _ParticipantHomeScreenState
     );
   }
 
-  Widget _buildBody(String? userId) {
-    if (userId == null) {
-      return const Center(child: Text('ユーザー情報がありません'));
-    }
-
+  Widget _buildBody() {
     switch (_selectedIndex) {
       case 0:
-        return _EventListTab(circleId: widget.circleId, userId: userId);
+        return _EventListTab(circleId: widget.circleId);
       case 1:
-        return _MembersTab(circleId: widget.circleId);
+        return const _MembersTab();
       case 2:
-        return _PaymentsTab(userId: userId);
+        return const _PaymentsTab();
       case 3:
-        return _NotificationsTab(userId: userId);
+        return const _NotificationsTab();
       default:
         return const SizedBox.shrink();
     }
@@ -92,56 +81,61 @@ class _ParticipantHomeScreenState
 }
 
 // イベント一覧タブ
-class _EventListTab extends ConsumerWidget {
+class _EventListTab extends StatelessWidget {
   final String circleId;
-  final String userId;
 
   const _EventListTab({
     required this.circleId,
-    required this.userId,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final eventsAsync = ref.watch(circleEventsProvider(circleId));
-
-    return eventsAsync.when(
-      data: (events) {
-        if (events.isEmpty) {
-          return const Center(
-            child: Text('イベントがありません'),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: events.length,
-          itemBuilder: (context, index) {
-            final event = events[index];
-            return _EventCard(event: event, userId: userId);
-          },
-        );
+  Widget build(BuildContext context) {
+    // Mock event data
+    final mockEvents = [
+      {
+        'name': '週末テニス練習',
+        'date': DateTime.now().add(const Duration(days: 3)),
+        'location': '市民体育館',
+        'confirmed': 8,
+        'max': 12,
+        'waitlist': 2,
+        'status': 'confirmed',
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(child: Text('エラー: $error')),
+      {
+        'name': 'ダブルストーナメント',
+        'date': DateTime.now().add(const Duration(days: 10)),
+        'location': 'テニスコートA',
+        'confirmed': 12,
+        'max': 16,
+        'waitlist': 0,
+        'status': null,
+      },
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: mockEvents.length,
+      itemBuilder: (context, index) {
+        final event = mockEvents[index];
+        return _EventCard(event: event);
+      },
     );
   }
 }
 
 // イベントカード
-class _EventCard extends ConsumerWidget {
-  final EventModel event;
-  final String userId;
+class _EventCard extends StatelessWidget {
+  final Map<String, dynamic> event;
 
   const _EventCard({
     required this.event,
-    required this.userId,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final status = event.getUserStatus(userId);
+  Widget build(BuildContext context) {
+    final status = event['status'] as String?;
     final dateFormat = DateFormat('yyyy/MM/dd (E) HH:mm', 'ja');
+    final date = event['date'] as DateTime;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -154,7 +148,7 @@ class _EventCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    event.name,
+                    event['name'] as String,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -169,33 +163,33 @@ class _EventCard extends ConsumerWidget {
               children: [
                 const Icon(Icons.calendar_today, size: 16),
                 const SizedBox(width: 8),
-                Text(dateFormat.format(event.datetime)),
+                Text(dateFormat.format(date)),
               ],
             ),
-            if (event.location != null) ...[
+            if (event['location'] != null) ...[
               const SizedBox(height: 4),
               Row(
                 children: [
                   const Icon(Icons.location_on, size: 16),
                   const SizedBox(width: 8),
-                  Text(event.location!),
+                  Text(event['location'] as String),
                 ],
               ),
             ],
             const SizedBox(height: 8),
             Row(
               children: [
-                Text('参加: ${event.confirmedCount}/${event.maxParticipants}人'),
-                if (event.waitlistCount > 0) ...[
+                Text('参加: ${event['confirmed']}/${event['max']}人'),
+                if ((event['waitlist'] as int) > 0) ...[
                   const SizedBox(width: 16),
-                  Text('待ち: ${event.waitlistCount}人'),
+                  Text('待ち: ${event['waitlist']}人'),
                 ],
               ],
             ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              child: _buildActionButton(context, ref, status),
+              child: _buildActionButton(context, status),
             ),
           ],
         ),
@@ -203,23 +197,26 @@ class _EventCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusChip(ParticipationStatus status) {
+  Widget _buildStatusChip(String status) {
     Color color;
     String label;
 
     switch (status) {
-      case ParticipationStatus.confirmed:
+      case 'confirmed':
         color = Colors.green;
         label = '参加確定';
         break;
-      case ParticipationStatus.waitlist:
+      case 'waitlist':
         color = Colors.orange;
         label = 'キャンセル待ち';
         break;
-      case ParticipationStatus.cancelled:
+      case 'cancelled':
         color = Colors.grey;
         label = 'キャンセル済み';
         break;
+      default:
+        color = Colors.grey;
+        label = '不明';
     }
 
     return Chip(
@@ -233,50 +230,24 @@ class _EventCard extends ConsumerWidget {
 
   Widget _buildActionButton(
     BuildContext context,
-    WidgetRef ref,
-    ParticipationStatus? status,
+    String? status,
   ) {
     if (status == null) {
       // 未参加
       return ElevatedButton(
-        onPressed: () async {
-          final joinEvent = ref.read(joinEventProvider);
-          try {
-            await joinEvent(eventId: event.eventId, userId: userId);
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('参加登録しました')),
-              );
-            }
-          } catch (e) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('エラー: $e')),
-              );
-            }
-          }
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('参加登録しました (デモモード)')),
+          );
         },
         child: const Text('参加する'),
       );
-    } else if (status == ParticipationStatus.confirmed ||
-        status == ParticipationStatus.waitlist) {
+    } else if (status == 'confirmed' || status == 'waitlist') {
       return OutlinedButton(
-        onPressed: () async {
-          final cancelEvent = ref.read(cancelEventProvider);
-          try {
-            await cancelEvent(eventId: event.eventId, userId: userId);
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('キャンセルしました')),
-              );
-            }
-          } catch (e) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('エラー: $e')),
-              );
-            }
-          }
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('キャンセルしました (デモモード)')),
+          );
         },
         style: OutlinedButton.styleFrom(
           foregroundColor: Colors.red,
@@ -290,61 +261,52 @@ class _EventCard extends ConsumerWidget {
 }
 
 // メンバータブ
-class _MembersTab extends ConsumerWidget {
-  final String circleId;
-
-  const _MembersTab({required this.circleId});
+class _MembersTab extends StatelessWidget {
+  const _MembersTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final circleAsync = ref.watch(circleProvider(circleId));
+  Widget build(BuildContext context) {
+    // Mock member data
+    final mockMembers = [
+      {'name': '山田太郎', 'role': '管理者', 'tags': ['レギュラー']},
+      {'name': '佐藤花子', 'role': 'メンバー', 'tags': []},
+      {'name': '鈴木一郎', 'role': 'メンバー', 'tags': ['初心者']},
+    ];
 
-    return circleAsync.when(
-      data: (circle) {
-        if (circle == null) {
-          return const Center(child: Text('サークル情報がありません'));
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: circle.members.length,
-          itemBuilder: (context, index) {
-            final member = circle.members[index];
-            return Card(
-              child: ListTile(
-                leading: const CircleAvatar(
-                  child: Icon(Icons.person),
-                ),
-                title: Text('User ${member.userId.substring(0, 8)}'),
-                subtitle: Text(member.role),
-                trailing: member.tags.isNotEmpty
-                    ? Wrap(
-                        spacing: 4,
-                        children: member.tags
-                            .map((tag) => Chip(
-                                  label: Text(tag),
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ))
-                            .toList(),
-                      )
-                    : null,
-              ),
-            );
-          },
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: mockMembers.length,
+      itemBuilder: (context, index) {
+        final member = mockMembers[index];
+        return Card(
+          child: ListTile(
+            leading: const CircleAvatar(
+              child: Icon(Icons.person),
+            ),
+            title: Text(member['name'] as String),
+            subtitle: Text(member['role'] as String),
+            trailing: (member['tags'] as List).isNotEmpty
+                ? Wrap(
+                    spacing: 4,
+                    children: (member['tags'] as List)
+                        .map((tag) => Chip(
+                              label: Text(tag as String),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ))
+                        .toList(),
+                  )
+                : null,
+          ),
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(child: Text('エラー: $error')),
     );
   }
 }
 
 // 支払いタブ
 class _PaymentsTab extends StatelessWidget {
-  final String userId;
-
-  const _PaymentsTab({required this.userId});
+  const _PaymentsTab();
 
   @override
   Widget build(BuildContext context) {
@@ -356,9 +318,7 @@ class _PaymentsTab extends StatelessWidget {
 
 // 通知タブ
 class _NotificationsTab extends StatelessWidget {
-  final String userId;
-
-  const _NotificationsTab({required this.userId});
+  const _NotificationsTab();
 
   @override
   Widget build(BuildContext context) {
