@@ -113,3 +113,26 @@ final updateMemberRoleProvider = Provider<Future<void> Function({
     );
   };
 });
+
+// サークル情報更新のProvider
+final updateCircleProvider = Provider<Future<void> Function({
+  required String circleId,
+  String? name,
+  String? description,
+  String? iconUrl,
+})>((ref) {
+  return ({
+    required String circleId,
+    String? name,
+    String? description,
+    String? iconUrl,
+  }) async {
+    final circleService = ref.read(circleServiceProvider);
+    await circleService.updateCircle(
+      circleId: circleId,
+      name: name,
+      description: description,
+      iconUrl: iconUrl,
+    );
+  };
+});

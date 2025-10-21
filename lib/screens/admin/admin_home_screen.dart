@@ -25,13 +25,25 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final circleAsync = ref.watch(circleProvider(widget.circleId));
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('テニスサークル (管理)'),
+        title: circleAsync.when(
+          data: (circle) => Text(circle?.name ?? 'サークル (管理)'),
+          loading: () => const Text('サークル (管理)'),
+          error: (_, __) => const Text('サークル (管理)'),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/circles'),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => _showEditCircleDialog(context, circleAsync.value),
+          ),
+        ],
       ),
       body: _buildBody(),
       bottomNavigationBar: NavigationBar(
@@ -174,6 +186,89 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
       ),
     );
   }
+
+  void _showEditCircleDialog(BuildContext context, circle) {
+    if (circle == null) return;
+
+    final nameController = TextEditingController(text: circle.name);
+    final descriptionController = TextEditingController(text: circle.description);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('サークル情報編集'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'サークル名',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: '説明',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('サークル名を入力してください')),
+                );
+                return;
+              }
+
+              Navigator.pop(dialogContext);
+
+              try {
+                final updateCircle = ref.read(updateCircleProvider);
+                await updateCircle(
+                  circleId: widget.circleId,
+                  name: nameController.text,
+                  description: descriptionController.text,
+                );
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('サークル情報を更新しました'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('更新に失敗しました: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // 管理者用イベント一覧タブ
@@ -293,6 +388,43 @@ class _AdminMembersTab extends ConsumerWidget {
 
         return Column(
           children: [
+            // サークル情報
+            if (circle.description.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.info_outline, size: 20),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'サークル説明',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          circle.description,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
             // 招待QRコード
             Padding(
               padding: const EdgeInsets.all(16),

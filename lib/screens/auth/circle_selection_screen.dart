@@ -108,8 +108,26 @@ class CircleSelectionScreen extends ConsumerWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  subtitle: Text(
-                    '${circle.members.length}人 • ${isAdmin ? '管理者' : 'メンバー'}',
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${circle.members.length}人 • ${isAdmin ? '管理者' : 'メンバー'}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      if (circle.description.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          circle.description,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
@@ -176,26 +194,28 @@ class CircleSelectionScreen extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('サークル作成'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'サークル名',
-                border: OutlineInputBorder(),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'サークル名',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: '説明',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: '説明',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
               ),
-              maxLines: 3,
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -211,11 +231,9 @@ class CircleSelectionScreen extends ConsumerWidget {
                 return;
               }
 
-              // ダイアログを閉じる
               Navigator.of(dialogContext).pop();
 
               try {
-                // サークルを作成
                 final createCircle = ref.read(createCircleProvider);
                 await createCircle(
                   name: nameController.text,
