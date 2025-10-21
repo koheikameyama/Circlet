@@ -72,6 +72,16 @@ class AdminEventDetailScreen extends ConsumerWidget {
                           color: Colors.white,
                         ),
                       ),
+                      if (event.description != null && event.description!.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          event.description!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       Row(
                         children: [
@@ -213,38 +223,6 @@ class AdminEventDetailScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-
-                // 説明
-                if (event.description != null && event.description!.isNotEmpty) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '説明',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              event.description!,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
 
                 // 参加ボタン
                 if (currentUser != null) ...[
@@ -589,12 +567,27 @@ class AdminEventDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '参加者一覧',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '参加者一覧',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                // デバッグ用：ダミー参加者追加ボタン
+                TextButton.icon(
+                  onPressed: () => _addDummyParticipant(context, ref, event),
+                  icon: const Icon(Icons.person_add, size: 16),
+                  label: const Text('ダミー追加', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.blue,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             if (event.participants.isEmpty)
@@ -848,6 +841,52 @@ class AdminEventDetailScreen extends ConsumerWidget {
           const SnackBar(
             content: Text('支払いを取り消しました'),
             backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('エラーが発生しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // デバッグ用：ダミー参加者を追加
+  Future<void> _addDummyParticipant(
+    BuildContext context,
+    WidgetRef ref,
+    EventModel event,
+  ) async {
+    try {
+      // ダミーユーザーIDを生成
+      final now = DateTime.now();
+      final dummyUserId = 'dummy_${now.millisecondsSinceEpoch}';
+      final dummyName = 'ダミー参加者${event.participants.length + 1}';
+
+      // Firestoreにダミーユーザーを作成
+      await ref.read(authServiceProvider).createDummyUser(
+        userId: dummyUserId,
+        name: dummyName,
+      );
+
+      // イベントに参加
+      final joinEvent = ref.read(joinEventProvider);
+      await joinEvent(
+        eventId: event.eventId,
+        userId: dummyUserId,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$dummyNameを追加しました'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
           ),
         );
       }

@@ -367,4 +367,25 @@ class AuthService {
       rethrow;
     }
   }
+
+  // デバッグ用：ダミーユーザーを作成
+  Future<void> createDummyUser({
+    required String userId,
+    required String name,
+  }) async {
+    try {
+      await _firestore.collection('users').doc(userId).set({
+        'userId': userId,
+        'name': name,
+        'lineUserId': 'dummy_line_$userId',
+        'circleIds': [],
+        'createdAt': Timestamp.now(),
+        'updatedAt': Timestamp.now(),
+      });
+      print('Created dummy user: $name ($userId)');
+    } catch (e) {
+      print('Error creating dummy user: $e');
+      rethrow;
+    }
+  }
 }

@@ -62,37 +62,6 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                   userParticipation,
                 ),
 
-                // Description
-                if (event.description != null && event.description!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '説明',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              event.description!,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
                 // Fee and Payment Status
                 if (event.fee != null && event.fee! > 0 && isParticipating)
                   _buildPaymentStatus(ref, event, currentUser?.uid ?? ''),
@@ -100,7 +69,7 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                 const Divider(height: 32),
 
                 // Participant List
-                _buildParticipantList(ref, event),
+                _buildParticipantList(context, ref, event),
               ],
             ),
           );
@@ -136,6 +105,16 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
               color: Colors.white,
             ),
           ),
+          if (event.description != null && event.description!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              event.description!,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.white70,
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           _buildInfoRow(Icons.calendar_today, dateFormat.format(event.datetime)),
           if (event.location != null)
@@ -346,20 +325,35 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildParticipantList(WidgetRef ref, EventModel event) {
+  Widget _buildParticipantList(BuildContext context, WidgetRef ref, EventModel event) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '参加者一覧 (${event.participants.length}人)',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '参加者一覧 (${event.participants.length}人)',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              // デバッグ用：ダミー参加者追加ボタン
+              TextButton.icon(
+                onPressed: () => _addDummyParticipant(context, ref, event),
+                icon: const Icon(Icons.person_add, size: 16),
+                label: const Text('ダミー追加', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.blue,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           if (event.participants.isEmpty)
             const Center(
               child: Padding(
@@ -368,51 +362,158 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
               ),
             )
           else
-            ...event.participants.map((participant) {
-              return FutureBuilder(
-                future: _getUserName(ref, participant.userId),
-                builder: (context, snapshot) {
-                  final userName = snapshot.data ?? '読み込み中...';
-
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      leading: const CircleAvatar(
-                        radius: 18,
-                        child: Icon(Icons.person, size: 18),
-                      ),
-                      title: Text(
-                        userName,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: participant.status == ParticipationStatus.confirmed
-                              ? Colors.green.shade100
-                              : Colors.orange.shade100,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+            SizedBox(
+              width: double.infinity,
+              child: DataTable(
+                headingRowHeight: 36,
+                dataRowHeight: 48,
+                columnSpacing: 16,
+                horizontalMargin: 0,
+                headingRowColor: MaterialStateProperty.all(Colors.blue.shade50),
+                columns: [
+                  DataColumn(
+                    label: Expanded(
+                      child: Center(
                         child: Text(
-                          participant.status == ParticipationStatus.confirmed ? '確定' : '待ち',
+                          '名前',
                           style: TextStyle(
-                            fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: participant.status == ParticipationStatus.confirmed
-                                ? Colors.green.shade800
-                                : Colors.orange.shade800,
+                            fontSize: 12,
+                            color: Colors.blue.shade900,
                           ),
                         ),
                       ),
                     ),
+                  ),
+                  DataColumn(
+                    label: Expanded(
+                      child: Center(
+                        child: Text(
+                          '参加ステータス',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.blue.shade900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (event.fee != null && event.fee! > 0)
+                    DataColumn(
+                      label: Expanded(
+                        child: Center(
+                          child: Text(
+                            '支払いステータス',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: Colors.blue.shade900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+                rows: event.participants.map((participant) {
+                  return DataRow(
+                    cells: [
+                      // 名前
+                      DataCell(
+                        Center(
+                          child: FutureBuilder<String>(
+                            future: _getUserName(ref, participant.userId),
+                            builder: (context, snapshot) {
+                              return Text(
+                                snapshot.data ?? participant.userId,
+                                style: const TextStyle(fontSize: 13),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      // 参加ステータス
+                      DataCell(
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: participant.status ==
+                                      ParticipationStatus.confirmed
+                                  ? Colors.green.shade100
+                                  : Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              participant.status ==
+                                      ParticipationStatus.confirmed
+                                  ? '参加確定'
+                                  : 'キャンセル待ち',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: participant.status ==
+                                        ParticipationStatus.confirmed
+                                    ? Colors.green.shade800
+                                    : Colors.orange.shade800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 支払いステータス（表示のみ）
+                      if (event.fee != null && event.fee! > 0)
+                        DataCell(
+                          Center(
+                            child: FutureBuilder(
+                              future: _getPaymentStatus(ref, event.eventId, participant.userId),
+                              builder: (context, snapshot) {
+                                final isPaid = snapshot.data ?? false;
+                                return Icon(
+                                  isPaid ? Icons.check_circle : Icons.payment,
+                                  size: 20,
+                                  color: isPaid ? Colors.green : Colors.orange,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                    ],
                   );
-                },
-              );
-            }).toList(),
+                }).toList(),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  // 支払いステータスを取得
+  Future<bool> _getPaymentStatus(WidgetRef ref, String eventId, String userId) async {
+    try {
+      final paymentsAsync = ref.read(eventPaymentsProvider(eventId).future);
+      final payments = await paymentsAsync;
+      final payment = payments.firstWhere(
+        (p) => p.userId == userId,
+        orElse: () => PaymentModel(
+          paymentId: '',
+          userId: userId,
+          eventId: eventId,
+          circleId: circleId,
+          amount: 0,
+          status: PaymentStatus.pending,
+          method: PaymentMethod.paypay,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+      return payment.isPaid;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<String> _getUserName(WidgetRef ref, String userId) async {
@@ -478,6 +579,52 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('キャンセルに失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // デバッグ用：ダミー参加者を追加
+  Future<void> _addDummyParticipant(
+    BuildContext context,
+    WidgetRef ref,
+    EventModel event,
+  ) async {
+    try {
+      // ダミーユーザーIDを生成
+      final now = DateTime.now();
+      final dummyUserId = 'dummy_${now.millisecondsSinceEpoch}';
+      final dummyName = 'ダミー参加者${event.participants.length + 1}';
+
+      // Firestoreにダミーユーザーを作成
+      await ref.read(authServiceProvider).createDummyUser(
+        userId: dummyUserId,
+        name: dummyName,
+      );
+
+      // イベントに参加
+      final joinEvent = ref.read(joinEventProvider);
+      await joinEvent(
+        eventId: event.eventId,
+        userId: dummyUserId,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$dummyNameを追加しました'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('エラーが発生しました: $e'),
             backgroundColor: Colors.red,
           ),
         );
