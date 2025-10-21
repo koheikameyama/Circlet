@@ -5,8 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../providers/circle_provider.dart';
 import '../../providers/auth_provider.dart';
-// import '../../providers/event_provider.dart'; // Temporarily disabled
-// import '../../models/event_model.dart'; // Temporarily disabled
+import '../../providers/event_provider.dart';
+import '../../models/event_model.dart';
+import 'admin_event_detail_screen.dart';
 
 class AdminHomeScreen extends ConsumerStatefulWidget {
   final String circleId;
@@ -103,86 +104,191 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
     final locationController = TextEditingController();
     final maxParticipantsController = TextEditingController(text: '10');
     final feeController = TextEditingController(text: '0');
+    DateTime? selectedDateTime;
+    bool participateAsCreator = true; // デフォルトで参加する
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('イベント作成'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'イベント名',
-                  border: OutlineInputBorder(),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('イベント作成'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'イベント名',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: '説明',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: '説明',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
                 ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: locationController,
-                decoration: const InputDecoration(
-                  labelText: '場所',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                // 日時選択
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    selectedDateTime == null
+                        ? '日時を選択'
+                        : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja')
+                            .format(selectedDateTime!),
+                    style: TextStyle(
+                      color: selectedDateTime == null ? Colors.grey : null,
+                    ),
+                  ),
+                  leading: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null && context.mounted) {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+                      if (time != null) {
+                        setState(() {
+                          selectedDateTime = DateTime(
+                            date.year,
+                            date.month,
+                            date.day,
+                            time.hour,
+                            time.minute,
+                          );
+                        });
+                      }
+                    }
+                  },
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: maxParticipantsController,
-                decoration: const InputDecoration(
-                  labelText: '定員',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: locationController,
+                  decoration: const InputDecoration(
+                    labelText: '場所',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: feeController,
-                decoration: const InputDecoration(
-                  labelText: '参加費',
-                  border: OutlineInputBorder(),
-                  prefixText: '¥',
+                const SizedBox(height: 12),
+                TextField(
+                  controller: maxParticipantsController,
+                  decoration: const InputDecoration(
+                    labelText: '定員',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
                 ),
-                keyboardType: TextInputType.number,
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: feeController,
+                  decoration: const InputDecoration(
+                    labelText: '参加費',
+                    border: OutlineInputBorder(),
+                    prefixText: '¥',
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                // 自分も参加するチェックボックス
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('自分も参加する'),
+                  value: participateAsCreator,
+                  onChanged: (value) {
+                    setState(() {
+                      participateAsCreator = value ?? true;
+                    });
+                  },
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('キャンセル'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('イベント名を入力してください')),
-                );
-                return;
-              }
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('キャンセル'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('イベント名を入力してください')),
+                  );
+                  return;
+                }
+                if (selectedDateTime == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('日時を選択してください')),
+                  );
+                  return;
+                }
 
-              // Temporarily disabled Firebase event creation
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content:
-                        Text('「${nameController.text}」を作成しました (デモモード)')),
-              );
-            },
-            child: const Text('作成'),
-          ),
-        ],
+                Navigator.pop(dialogContext);
+
+                try {
+                  // イベントを作成
+                  final createEvent = ref.read(createEventProvider);
+                  final eventId = await createEvent(
+                    circleId: widget.circleId,
+                    name: nameController.text,
+                    description: descriptionController.text.isEmpty
+                        ? null
+                        : descriptionController.text,
+                    datetime: selectedDateTime!,
+                    location: locationController.text.isEmpty
+                        ? null
+                        : locationController.text,
+                    maxParticipants: int.parse(maxParticipantsController.text),
+                    fee: int.parse(feeController.text),
+                  );
+
+                  // 作成者が参加する場合、イベントに参加
+                  if (participateAsCreator) {
+                    final currentUser = ref.read(authStateProvider).value;
+                    if (currentUser != null) {
+                      final joinEvent = ref.read(joinEventProvider);
+                      await joinEvent(
+                        eventId: eventId,
+                        userId: currentUser.uid,
+                      );
+                    }
+                  }
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('「${nameController.text}」を作成しました'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('イベントの作成に失敗しました: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('作成'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -272,99 +378,246 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
 }
 
 // 管理者用イベント一覧タブ
-class _AdminEventListTab extends StatelessWidget {
+class _AdminEventListTab extends ConsumerWidget {
   final String circleId;
 
   const _AdminEventListTab({required this.circleId});
 
   @override
-  Widget build(BuildContext context) {
-    // Mock event data
-    final mockEvents = [
-      {
-        'name': '週末テニス練習',
-        'date': DateTime.now().add(const Duration(days: 3)),
-        'confirmed': 8,
-        'max': 12,
-        'waitlist': 2,
-        'participants': [
-          {'name': '山田太郎', 'status': 'confirmed'},
-          {'name': '佐藤花子', 'status': 'confirmed'},
-          {'name': '鈴木一郎', 'status': 'waitlist'},
-        ],
-      },
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final eventsAsync = ref.watch(circleEventsProvider(circleId));
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: mockEvents.length,
-      itemBuilder: (context, index) {
-        final event = mockEvents[index];
-        return _AdminEventCard(event: event);
+    return eventsAsync.when(
+      data: (events) {
+        if (events.isEmpty) {
+          return const Center(
+            child: Text(
+              'イベントがありません\n下の「+」ボタンからイベントを作成できます',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: events.length,
+          itemBuilder: (context, index) {
+            final event = events[index];
+            return _AdminEventCard(
+              event: event,
+              ref: ref,
+              circleId: circleId,
+            );
+          },
+        );
       },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(child: Text('エラー: $error')),
     );
   }
 }
 
 // 管理者用イベントカード
-class _AdminEventCard extends StatelessWidget {
-  final Map<String, dynamic> event;
+class _AdminEventCard extends ConsumerWidget {
+  final EventModel event;
+  final WidgetRef ref;
+  final String circleId;
 
-  const _AdminEventCard({required this.event});
+  const _AdminEventCard({
+    required this.event,
+    required this.ref,
+    required this.circleId,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final dateFormat = DateFormat('yyyy/MM/dd (E) HH:mm', 'ja');
-    final date = event['date'] as DateTime;
+    final currentUser = ref.watch(authStateProvider).value;
+
+    // 現在のユーザーが参加しているかチェック
+    final isParticipating = currentUser != null &&
+        event.participants.any((p) =>
+            p.userId == currentUser.uid &&
+            p.status != ParticipationStatus.cancelled);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ExpansionTile(
-        leading: const Icon(Icons.event),
-        title: Text(
-          event['name'] as String,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(dateFormat.format(date)),
-            Text('参加: ${event['confirmed']}/${event['max']}人'),
-            if ((event['waitlist'] as int) > 0)
-              Text('待ち: ${event['waitlist']}人',
-                  style: const TextStyle(color: Colors.orange)),
-          ],
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '参加者一覧',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ...(event['participants'] as List).map((p) {
-                  final participant = p as Map<String, dynamic>;
-                  final status = participant['status'] as String;
-                  return ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.person),
-                    title: Text(participant['name'] as String),
-                    trailing: Chip(
-                      label: Text(status == 'confirmed' ? '参加確定' : 'キャンセル待ち'),
-                      backgroundColor: status == 'confirmed'
-                          ? Colors.green
-                          : Colors.orange,
-                    ),
-                  );
-                }),
-              ],
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => AdminEventDetailScreen(
+                circleId: circleId,
+                eventId: event.eventId,
+              ),
             ),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // イベントアイコン
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.event,
+                  color: Colors.blue,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 16),
+              // イベント情報
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(
+                          dateFormat.format(event.datetime),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (event.location != null) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              event.location!,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        // 参加状況バッジ
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isParticipating
+                                ? Colors.green.shade100
+                                : Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isParticipating ? Icons.check_circle : Icons.people,
+                                size: 14,
+                                color: isParticipating ? Colors.green : Colors.grey[700],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isParticipating
+                                    ? '参加中'
+                                    : '${event.confirmedCount}/${event.maxParticipants}人',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isParticipating ? Colors.green : Colors.grey[700],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // キャンセル待ちバッジ
+                        if (event.waitlistCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.schedule,
+                                  size: 14,
+                                  color: Colors.orange,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '待ち${event.waitlistCount}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // 参加費バッジ
+                        if (event.fee != null && event.fee! > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            margin: const EdgeInsets.only(left: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '¥${event.fee}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

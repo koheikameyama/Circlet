@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-// import '../../providers/auth_provider.dart'; // Temporarily disabled
-// import '../../providers/circle_provider.dart'; // Temporarily disabled
-// import '../../providers/event_provider.dart'; // Temporarily disabled
-// import '../../models/event_model.dart'; // Temporarily disabled
+import '../../providers/auth_provider.dart';
+import '../../providers/circle_provider.dart';
+import '../../providers/event_provider.dart';
+import '../../models/event_model.dart';
+import 'participant_event_detail_screen.dart';
 
 class ParticipantHomeScreen extends ConsumerStatefulWidget {
   final String circleId;
@@ -26,6 +27,8 @@ class _ParticipantHomeScreenState
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(authStateProvider).value;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('テニスサークル'),
@@ -33,6 +36,14 @@ class _ParticipantHomeScreenState
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/circles'),
         ),
+        actions: [
+          // デバッグ用：イベント自動作成ボタン
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'イベント自動作成（デバッグ）',
+            onPressed: () => _autoCreateEvent(context),
+          ),
+        ],
       ),
       body: _buildBody(),
       bottomNavigationBar: NavigationBar(
@@ -78,10 +89,47 @@ class _ParticipantHomeScreenState
         return const SizedBox.shrink();
     }
   }
+
+  Future<void> _autoCreateEvent(BuildContext context) async {
+    final now = DateTime.now();
+    final eventName = 'テストイベント_${now.hour}${now.minute}${now.second}';
+    final eventDate = now.add(const Duration(days: 3));
+
+    try {
+      final createEvent = ref.read(createEventProvider);
+      await createEvent(
+        circleId: widget.circleId,
+        name: eventName,
+        description: 'デバッグ用に自動作成されたイベント',
+        datetime: eventDate,
+        location: 'テスト会場',
+        maxParticipants: 10,
+        fee: 1000,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('「$eventName」を作成しました'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('イベントの作成に失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 }
 
 // イベント一覧タブ
-class _EventListTab extends StatelessWidget {
+class _EventListTab extends ConsumerWidget {
   final String circleId;
 
   const _EventListTab({
@@ -89,174 +137,266 @@ class _EventListTab extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Mock event data
-    final mockEvents = [
-      {
-        'name': '週末テニス練習',
-        'date': DateTime.now().add(const Duration(days: 3)),
-        'location': '市民体育館',
-        'confirmed': 8,
-        'max': 12,
-        'waitlist': 2,
-        'status': 'confirmed',
-      },
-      {
-        'name': 'ダブルストーナメント',
-        'date': DateTime.now().add(const Duration(days: 10)),
-        'location': 'テニスコートA',
-        'confirmed': 12,
-        'max': 16,
-        'waitlist': 0,
-        'status': null,
-      },
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final eventsAsync = ref.watch(circleEventsProvider(circleId));
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: mockEvents.length,
-      itemBuilder: (context, index) {
-        final event = mockEvents[index];
-        return _EventCard(event: event);
+    return eventsAsync.when(
+      data: (events) {
+        if (events.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.event_busy,
+                    size: 80,
+                    color: Colors.grey,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'イベントがありません',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '右上の+ボタンからテストイベントを作成できます',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: events.length,
+          itemBuilder: (context, index) {
+            final event = events[index];
+            return _ParticipantEventCard(
+              event: event,
+              circleId: circleId,
+            );
+          },
+        );
       },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Text('エラーが発生しました: $error'),
+      ),
     );
   }
 }
 
-// イベントカード
-class _EventCard extends StatelessWidget {
-  final Map<String, dynamic> event;
+// 参加者用イベントカード
+class _ParticipantEventCard extends ConsumerWidget {
+  final EventModel event;
+  final String circleId;
 
-  const _EventCard({
+  const _ParticipantEventCard({
     required this.event,
+    required this.circleId,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final status = event['status'] as String?;
+  Widget build(BuildContext context, WidgetRef ref) {
     final dateFormat = DateFormat('yyyy/MM/dd (E) HH:mm', 'ja');
-    final date = event['date'] as DateTime;
+    final currentUser = ref.watch(authStateProvider).value;
+
+    // 現在のユーザーが参加しているかチェック
+    final isParticipating = currentUser != null &&
+        event.participants.any((p) =>
+            p.userId == currentUser.uid &&
+            p.status != ParticipationStatus.cancelled);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    event['name'] as String,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                if (status != null) _buildStatusChip(status),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 16),
-                const SizedBox(width: 8),
-                Text(dateFormat.format(date)),
-              ],
-            ),
-            if (event['location'] != null) ...[
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.location_on, size: 16),
-                  const SizedBox(width: 8),
-                  Text(event['location'] as String),
-                ],
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ParticipantEventDetailScreen(
+                circleId: circleId,
+                eventId: event.eventId,
               ),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // イベントアイコン
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.event,
+                  color: Colors.blue,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 16),
+              // イベント情報
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(
+                          dateFormat.format(event.datetime),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (event.location != null) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              event.location!,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        // 参加状況バッジ
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isParticipating
+                                ? Colors.green.shade100
+                                : Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isParticipating ? Icons.check_circle : Icons.people,
+                                size: 14,
+                                color: isParticipating ? Colors.green : Colors.grey[700],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isParticipating
+                                    ? '参加中'
+                                    : '${event.confirmedCount}/${event.maxParticipants}人',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isParticipating ? Colors.green : Colors.grey[700],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // キャンセル待ちバッジ
+                        if (event.waitlistCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.schedule,
+                                  size: 14,
+                                  color: Colors.orange,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '待ち${event.waitlistCount}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // 参加費バッジ
+                        if (event.fee != null && event.fee! > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            margin: const EdgeInsets.only(left: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '¥${event.fee}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
             ],
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Text('参加: ${event['confirmed']}/${event['max']}人'),
-                if ((event['waitlist'] as int) > 0) ...[
-                  const SizedBox(width: 16),
-                  Text('待ち: ${event['waitlist']}人'),
-                ],
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: _buildActionButton(context, status),
-            ),
-          ],
+          ),
         ),
       ),
     );
-  }
-
-  Widget _buildStatusChip(String status) {
-    Color color;
-    String label;
-
-    switch (status) {
-      case 'confirmed':
-        color = Colors.green;
-        label = '参加確定';
-        break;
-      case 'waitlist':
-        color = Colors.orange;
-        label = 'キャンセル待ち';
-        break;
-      case 'cancelled':
-        color = Colors.grey;
-        label = 'キャンセル済み';
-        break;
-      default:
-        color = Colors.grey;
-        label = '不明';
-    }
-
-    return Chip(
-      label: Text(label),
-      backgroundColor: color.withOpacity(0.2),
-      labelStyle: TextStyle(color: color, fontWeight: FontWeight.bold),
-      padding: EdgeInsets.zero,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
-  }
-
-  Widget _buildActionButton(
-    BuildContext context,
-    String? status,
-  ) {
-    if (status == null) {
-      // 未参加
-      return ElevatedButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('参加登録しました (デモモード)')),
-          );
-        },
-        child: const Text('参加する'),
-      );
-    } else if (status == 'confirmed' || status == 'waitlist') {
-      return OutlinedButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('キャンセルしました (デモモード)')),
-          );
-        },
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.red,
-        ),
-        child: const Text('キャンセル'),
-      );
-    }
-
-    return const SizedBox.shrink();
   }
 }
 
