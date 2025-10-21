@@ -27,38 +27,65 @@ class AuthService {
       final name = result.userProfile?.displayName ?? 'Unknown User';
       final profileImageUrl = result.userProfile?.pictureUrl;
 
-      // LINE IDで既存ユーザーを検索
-      final existingUser = await _findUserByLineId(lineUserId);
+      // LINE User IDを使ってメールアドレスとパスワードを生成
+      final email = '$lineUserId@line.user';
+      final password = lineUserId; // シンプルにLINE User IDをパスワードとして使用
 
-      if (existingUser != null) {
-        // 既存ユーザーが見つかった場合
-        final credential = await _auth.signInAnonymously();
+      print('Attempting LINE login with email: $email');
 
-        // 既存のユーザーデータを新しいFirebase UIDに移行
-        await _migrateUserData(
-          oldUserId: existingUser.userId,
-          newUserId: credential.user!.uid,
-          lineUserId: lineUserId,
-          name: name,
-          profileImageUrl: profileImageUrl,
-          circleIds: existingUser.circleIds,
+      // 既存の匿名認証ユーザーをチェック（移行用）
+      final existingAnonymousUser = await _findUserByLineId(lineUserId);
+
+      UserCredential credential;
+
+      try {
+        // 既存のEmail/Passwordアカウントでサインイン
+        credential = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
         );
+        print('Signed in with existing email/password account');
 
-        return credential;
-      } else {
-        // 新規ユーザーの場合
-        final credential = await _auth.signInAnonymously();
-
-        // ユーザー情報をFirestoreに保存
+        // ユーザー情報を最新に更新
         await _saveUserToFirestore(
           userId: credential.user!.uid,
           lineUserId: lineUserId,
           name: name,
           profileImageUrl: profileImageUrl,
         );
+      } catch (e) {
+        print('No existing email/password account, creating new one: $e');
 
-        return credential;
+        // アカウントが存在しない場合、新規作成
+        credential = await _auth.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        print('Created new email/password account: ${credential.user!.uid}');
+
+        // 既存の匿名認証ユーザーがいる場合、データを移行
+        if (existingAnonymousUser != null) {
+          print('Migrating data from anonymous user: ${existingAnonymousUser.userId}');
+          await _migrateUserData(
+            oldUserId: existingAnonymousUser.userId,
+            newUserId: credential.user!.uid,
+            lineUserId: lineUserId,
+            name: name,
+            profileImageUrl: profileImageUrl,
+            circleIds: existingAnonymousUser.circleIds,
+          );
+        } else {
+          // 新規ユーザーの場合、ユーザー情報を保存
+          await _saveUserToFirestore(
+            userId: credential.user!.uid,
+            lineUserId: lineUserId,
+            name: name,
+            profileImageUrl: profileImageUrl,
+          );
+        }
       }
+
+      return credential;
     } catch (e) {
       print('LINE login error: $e');
       return null;
@@ -94,6 +121,8 @@ class AuthService {
     required List<String> circleIds,
   }) async {
     try {
+      print('Migrating user data from $oldUserId to $newUserId');
+
       // 新しいFirebase UIDでユーザーデータを作成
       final user = UserModel(
         userId: newUserId,
@@ -112,8 +141,16 @@ class AuthService {
         await _updateCircleMemberUserId(circleId, oldUserId, newUserId);
       }
 
+      // イベントの参加者情報を更新
+      await _updateEventParticipantUserId(oldUserId, newUserId);
+
+      // 支払い情報を更新
+      await _updatePaymentUserId(oldUserId, newUserId);
+
       // 古いユーザーデータを削除
       await _firestore.collection('users').doc(oldUserId).delete();
+
+      print('User data migration completed');
     } catch (e) {
       print('Error migrating user data: $e');
       rethrow;
@@ -153,6 +190,99 @@ class AuthService {
       });
     } catch (e) {
       print('Error updating circle member: $e');
+    }
+  }
+
+  // イベントの参加者情報でユーザーIDを更新
+  Future<void> _updateEventParticipantUserId(
+    String oldUserId,
+    String newUserId,
+  ) async {
+    try {
+      // ユーザーが参加しているすべてのイベントを検索
+      final eventsQuery = await _firestore
+          .collection('events')
+          .where('participants', arrayContains: {'userId': oldUserId})
+          .get();
+
+      // 見つからない場合は、より広範囲に検索
+      if (eventsQuery.docs.isEmpty) {
+        final allEventsQuery = await _firestore.collection('events').get();
+
+        for (final eventDoc in allEventsQuery.docs) {
+          final data = eventDoc.data();
+          final participants = (data['participants'] as List<dynamic>?) ?? [];
+
+          bool needsUpdate = false;
+          final updatedParticipants = participants.map((participant) {
+            if (participant['userId'] == oldUserId) {
+              needsUpdate = true;
+              return {
+                ...participant as Map<String, dynamic>,
+                'userId': newUserId,
+              };
+            }
+            return participant;
+          }).toList();
+
+          if (needsUpdate) {
+            await eventDoc.reference.update({
+              'participants': updatedParticipants,
+              'updatedAt': Timestamp.now(),
+            });
+            print('Updated event ${eventDoc.id} participants');
+          }
+        }
+      } else {
+        // 各イベントの参加者リストを更新
+        for (final eventDoc in eventsQuery.docs) {
+          final data = eventDoc.data();
+          final participants = (data['participants'] as List<dynamic>?) ?? [];
+
+          final updatedParticipants = participants.map((participant) {
+            if (participant['userId'] == oldUserId) {
+              return {
+                ...participant as Map<String, dynamic>,
+                'userId': newUserId,
+              };
+            }
+            return participant;
+          }).toList();
+
+          await eventDoc.reference.update({
+            'participants': updatedParticipants,
+            'updatedAt': Timestamp.now(),
+          });
+        }
+      }
+    } catch (e) {
+      print('Error updating event participants: $e');
+    }
+  }
+
+  // 支払い情報でユーザーIDを更新
+  Future<void> _updatePaymentUserId(
+    String oldUserId,
+    String newUserId,
+  ) async {
+    try {
+      // ユーザーのすべての支払い情報を検索
+      final paymentsQuery = await _firestore
+          .collection('payments')
+          .where('userId', isEqualTo: oldUserId)
+          .get();
+
+      // 各支払い情報を更新
+      for (final paymentDoc in paymentsQuery.docs) {
+        await paymentDoc.reference.update({
+          'userId': newUserId,
+          'updatedAt': Timestamp.now(),
+        });
+      }
+
+      print('Updated ${paymentsQuery.docs.length} payment records');
+    } catch (e) {
+      print('Error updating payments: $e');
     }
   }
 

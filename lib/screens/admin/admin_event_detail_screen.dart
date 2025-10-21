@@ -120,7 +120,7 @@ class AdminEventDetailScreen extends ConsumerWidget {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.hourglass_empty, color: Colors.orange.shade200, size: 18),
+                            Icon(Icons.hourglass_empty, color: Colors.orange.shade200, size: 18),
                             const SizedBox(width: 8),
                             Text(
                               '待機中: ${event.waitlistCount}人',
@@ -291,7 +291,7 @@ class AdminEventDetailScreen extends ConsumerWidget {
                 // 参加者一覧と支払い状況
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: _buildParticipantsSection(ref, event),
+                  child: _buildParticipantsSection(context, ref, event),
                 ),
 
                 const SizedBox(height: 16),
@@ -580,23 +580,23 @@ class AdminEventDetailScreen extends ConsumerWidget {
   }
 
   // 参加者一覧セクション
-  Widget _buildParticipantsSection(WidgetRef ref, EventModel event) {
+  Widget _buildParticipantsSection(BuildContext context, WidgetRef ref, EventModel event) {
     final paymentsAsync = ref.watch(eventPaymentsProvider(event.eventId));
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               '参加者一覧',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             if (event.participants.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(16),
@@ -610,97 +610,114 @@ class AdminEventDetailScreen extends ConsumerWidget {
             else
               paymentsAsync.when(
                 data: (payments) {
-                  return Column(
-                    children: event.participants.map((participant) {
-                      // この参加者の支払い情報を取得
-                      final payment = payments.firstWhere(
-                        (p) => p.userId == participant.userId,
-                        orElse: () => PaymentModel(
-                          paymentId: '',
-                          userId: participant.userId,
-                          eventId: event.eventId,
-                          circleId: event.circleId,
-                          amount: 0,
-                          status: PaymentStatus.pending,
-                          method: PaymentMethod.paypay,
-                          createdAt: DateTime.now(),
-                          updatedAt: DateTime.now(),
-                        ),
-                      );
-
-                      return FutureBuilder<String>(
-                        future: _getUserName(ref, participant.userId),
-                        builder: (context, snapshot) {
-                          return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+                  return SizedBox(
+                    width: double.infinity,
+                    child: DataTable(
+                      headingRowHeight: 36,
+                      dataRowHeight: 48,
+                      columnSpacing: 16,
+                      horizontalMargin: 0,
+                      headingRowColor: MaterialStateProperty.all(Colors.blue.shade50),
+                    columns: [
+                      DataColumn(
+                        label: Expanded(
+                          child: Center(
+                            child: Text(
+                              '名前',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: Colors.blue.shade900,
+                              ),
                             ),
-                            leading: CircleAvatar(
-                              backgroundColor:
-                                  participant.status == ParticipationStatus.confirmed
-                                      ? Colors.green
-                                      : Colors.orange,
-                              radius: 18,
+                          ),
+                        ),
+                      ),
+                        DataColumn(
+                          label: Expanded(
+                            child: Center(
                               child: Text(
-                                snapshot.data?.substring(0, 1) ?? '?',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
+                                '参加ステータス',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Colors.blue.shade900,
                                 ),
                               ),
                             ),
-                            title: Text(
-                              snapshot.data ?? participant.userId,
-                              style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                        if (event.fee != null && event.fee! > 0)
+                          DataColumn(
+                            label: Expanded(
+                              child: Center(
+                                child: Text(
+                                  '支払い済み',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: Colors.blue.shade900,
+                                  ),
+                                ),
+                              ),
                             ),
-                            subtitle: event.fee != null && event.fee! > 0
-                                ? Row(
-                                    children: [
-                                      Icon(
-                                        payment.isPaid
-                                            ? Icons.check_circle
-                                            : Icons.payment,
-                                        size: 12,
-                                        color: payment.isPaid
-                                            ? Colors.green
-                                            : Colors.orange,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        payment.isPaid ? '支払済' : '未払',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: payment.isPaid
-                                              ? Colors.green
-                                              : Colors.orange,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : null,
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
+                          ),
+                      ],
+                      rows: event.participants.map((participant) {
+                        // この参加者の支払い情報を取得
+                        final payment = payments.firstWhere(
+                          (p) => p.userId == participant.userId,
+                          orElse: () => PaymentModel(
+                            paymentId: '',
+                            userId: participant.userId,
+                            eventId: event.eventId,
+                            circleId: event.circleId,
+                            amount: 0,
+                            status: PaymentStatus.pending,
+                            method: PaymentMethod.paypay,
+                            createdAt: DateTime.now(),
+                            updatedAt: DateTime.now(),
+                          ),
+                        );
+
+                        return DataRow(
+                          cells: [
+                            // 名前
+                            DataCell(
+                              Center(
+                                child: FutureBuilder<String>(
+                                  future: _getUserName(ref, participant.userId),
+                                  builder: (context, snapshot) {
+                                    return Text(
+                                      snapshot.data ?? participant.userId,
+                                      style: const TextStyle(fontSize: 13),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            // 参加ステータス
+                            DataCell(
+                              Center(
+                                child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
+                                    horizontal: 8,
+                                    vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
                                     color: participant.status ==
                                             ParticipationStatus.confirmed
                                         ? Colors.green.shade100
                                         : Colors.orange.shade100,
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     participant.status ==
                                             ParticipationStatus.confirmed
-                                        ? '確定'
-                                        : '待ち',
+                                        ? '参加確定'
+                                        : 'キャンセル待ち',
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.bold,
                                       color: participant.status ==
                                               ParticipationStatus.confirmed
@@ -709,32 +726,39 @@ class AdminEventDetailScreen extends ConsumerWidget {
                                     ),
                                   ),
                                 ),
-                                if (event.fee != null &&
-                                    event.fee! > 0 &&
-                                    !payment.isPaid)
-                                  IconButton(
-                                    icon: const Icon(Icons.check, size: 18),
-                                    color: Colors.green,
-                                    tooltip: '支払い済みにする',
-                                    padding: const EdgeInsets.all(4),
-                                    constraints: const BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
-                                    ),
-                                    onPressed: () => _markAsPaidOrCreate(
-                                      context,
-                                      ref,
-                                      payment.paymentId,
-                                      participant.userId,
-                                      event,
-                                    ),
-                                  ),
-                              ],
+                              ),
                             ),
-                          );
-                        },
-                      );
-                    }).toList(),
+                            // 支払いステータス（チェックボックス）
+                            if (event.fee != null && event.fee! > 0)
+                              DataCell(
+                                Center(
+                                  child: Checkbox(
+                                    value: payment.isPaid,
+                                    activeColor: Colors.green,
+                                    onChanged: (value) {
+                                      if (value == true) {
+                                        _markAsPaidOrCreate(
+                                          context,
+                                          ref,
+                                          payment.paymentId,
+                                          participant.userId,
+                                          event,
+                                        );
+                                      } else {
+                                        _markAsUnpaid(
+                                          context,
+                                          ref,
+                                          payment.paymentId,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -786,6 +810,44 @@ class AdminEventDetailScreen extends ConsumerWidget {
           const SnackBar(
             content: Text('支払い済みにしました'),
             backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('エラーが発生しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // 未払いに戻す
+  Future<void> _markAsUnpaid(
+    BuildContext context,
+    WidgetRef ref,
+    String paymentId,
+  ) async {
+    try {
+      if (paymentId.isEmpty) {
+        // 支払いレコードが存在しない場合は何もしない
+        return;
+      }
+
+      final updateStatus = ref.read(updatePaymentStatusProvider);
+      await updateStatus(
+        paymentId: paymentId,
+        status: PaymentStatus.pending,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('支払いを取り消しました'),
+            backgroundColor: Colors.orange,
           ),
         );
       }
