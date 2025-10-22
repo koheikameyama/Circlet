@@ -302,9 +302,20 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      userPayment.isPaid ? Icons.check_circle : Icons.payment,
-                      color: userPayment.isPaid ? Colors.green : Colors.orange,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: userPayment.isPaid ? Colors.green : Colors.orange,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        userPayment.isPaid ? '済' : '未',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -496,10 +507,20 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                               future: _getPaymentStatus(ref, event.eventId, participant.userId),
                               builder: (context, snapshot) {
                                 final isPaid = snapshot.data ?? false;
-                                return Icon(
-                                  isPaid ? Icons.check_circle : Icons.payment,
-                                  size: 20,
-                                  color: isPaid ? Colors.green : Colors.orange,
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isPaid ? Colors.green : Colors.orange,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    isPaid ? '済' : '未',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                    ),
+                                  ),
                                 );
                               },
                             ),
