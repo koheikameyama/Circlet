@@ -72,10 +72,6 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
             icon: Icon(Icons.people),
             label: 'メンバー',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.notifications),
-            label: '通知',
-          ),
         ],
       ),
       floatingActionButton: _selectedIndex == 0
@@ -94,8 +90,6 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
         return _AdminEventListTab(circleId: widget.circleId);
       case 1:
         return _AdminMembersTab(circleId: widget.circleId);
-      case 2:
-        return _AdminNotificationsTab(circleId: widget.circleId);
       default:
         return const SizedBox.shrink();
     }
