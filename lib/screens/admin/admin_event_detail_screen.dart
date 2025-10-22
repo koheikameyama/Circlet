@@ -28,6 +28,15 @@ class AdminEventDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('イベント詳細'),
         actions: [
+          // 編集ボタン
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () {
+              if (eventAsync.value != null) {
+                _showEditEventDialog(context, ref, eventAsync.value!);
+              }
+            },
+          ),
           // 削除ボタン
           IconButton(
             icon: const Icon(Icons.delete),
@@ -88,31 +97,17 @@ class AdminEventDetailScreen extends ConsumerWidget {
                         children: [
                           const Icon(Icons.event, color: Colors.white70, size: 18),
                           const SizedBox(width: 8),
-                          Text(
-                            dateFormat.format(event.datetime),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (event.endDatetime != null) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.event_available, color: Colors.white70, size: 18),
-                            const SizedBox(width: 8),
-                            Text(
-                              dateFormat.format(event.endDatetime!),
+                          Expanded(
+                            child: Text(
+                              _formatEventDateTime(event.datetime, event.endDatetime),
                               style: const TextStyle(
                                 fontSize: 16,
                                 color: Colors.white70,
                               ),
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                       if (event.location != null) ...[
                         const SizedBox(height: 8),
                         Row(
@@ -327,6 +322,28 @@ class AdminEventDetailScreen extends ConsumerWidget {
     );
   }
 
+  String _formatEventDateTime(DateTime startDateTime, DateTime? endDateTime) {
+    final dateFormat = DateFormat('yyyy/MM/dd (E) HH:mm', 'ja');
+    final timeFormat = DateFormat('HH:mm', 'ja');
+
+    if (endDateTime == null) {
+      return dateFormat.format(startDateTime);
+    }
+
+    // 同じ日付かチェック
+    final isSameDay = startDateTime.year == endDateTime.year &&
+                      startDateTime.month == endDateTime.month &&
+                      startDateTime.day == endDateTime.day;
+
+    if (isSameDay) {
+      // 同じ日の場合: "2025/10/22 (月) 14:00 ~ 16:00"
+      return '${dateFormat.format(startDateTime)} ~ ${timeFormat.format(endDateTime)}';
+    } else {
+      // 異なる日の場合: "2025/10/22 (月) 14:00 ~ 2025/10/23 (火) 16:00"
+      return '${dateFormat.format(startDateTime)} ~ ${dateFormat.format(endDateTime)}';
+    }
+  }
+
   Future<String> _getUserName(WidgetRef ref, String userId) async {
     try {
       final authService = ref.read(authServiceProvider);
@@ -389,6 +406,244 @@ class AdminEventDetailScreen extends ConsumerWidget {
         );
       }
     }
+  }
+
+  void _showEditEventDialog(BuildContext context, WidgetRef ref, EventModel event) {
+    final nameController = TextEditingController(text: event.name);
+    final descriptionController = TextEditingController(text: event.description ?? '');
+    final locationController = TextEditingController(text: event.location ?? '');
+    final maxParticipantsController = TextEditingController(text: event.maxParticipants.toString());
+    final feeController = TextEditingController(text: (event.fee ?? 0).toString());
+    DateTime? selectedDateTime = event.datetime;
+    DateTime? selectedEndDateTime = event.endDatetime;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('イベント編集'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'イベント名',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: '説明',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 12),
+                  // 開始日時選択
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      selectedDateTime == null
+                          ? '開始日時を選択'
+                          : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja')
+                              .format(selectedDateTime!),
+                      style: TextStyle(
+                        color: selectedDateTime == null ? Colors.grey : null,
+                      ),
+                    ),
+                    leading: const Icon(Icons.event),
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDateTime ?? DateTime.now(),
+                        firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null && context.mounted) {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: selectedDateTime != null
+                              ? TimeOfDay.fromDateTime(selectedDateTime!)
+                              : TimeOfDay.now(),
+                        );
+                        if (time != null) {
+                          setState(() {
+                            selectedDateTime = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              time.hour,
+                              time.minute,
+                            );
+                          });
+                        }
+                      }
+                    },
+                  ),
+                  // 終了日時選択
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      selectedEndDateTime == null
+                          ? '終了日時を選択（任意）'
+                          : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja')
+                              .format(selectedEndDateTime!),
+                      style: TextStyle(
+                        color: selectedEndDateTime == null ? Colors.grey : null,
+                      ),
+                    ),
+                    leading: const Icon(Icons.event_available),
+                    trailing: selectedEndDateTime != null
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              setState(() {
+                                selectedEndDateTime = null;
+                              });
+                            },
+                          )
+                        : null,
+                    onTap: () async {
+                      if (selectedDateTime == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('先に開始日時を選択してください')),
+                        );
+                        return;
+                      }
+
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDateTime!,
+                        firstDate: selectedDateTime!,
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null && context.mounted) {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(selectedDateTime!),
+                        );
+                        if (time != null) {
+                          setState(() {
+                            selectedEndDateTime = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              time.hour,
+                              time.minute,
+                            );
+                          });
+                        }
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: locationController,
+                    decoration: const InputDecoration(
+                      labelText: '場所',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: maxParticipantsController,
+                    decoration: const InputDecoration(
+                      labelText: '定員',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: feeController,
+                    decoration: const InputDecoration(
+                      labelText: '参加費',
+                      border: OutlineInputBorder(),
+                      prefixText: '¥',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('キャンセル'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (nameController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('イベント名を入力してください')),
+                    );
+                    return;
+                  }
+                  if (selectedDateTime == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('開始日時を選択してください')),
+                    );
+                    return;
+                  }
+                  if (selectedEndDateTime != null &&
+                      (selectedEndDateTime!.isBefore(selectedDateTime!) ||
+                       selectedEndDateTime!.isAtSameMomentAs(selectedDateTime!))) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('終了日時は開始日時より後にしてください')),
+                    );
+                    return;
+                  }
+
+                  Navigator.pop(dialogContext);
+
+                  try {
+                    final updateEvent = ref.read(updateEventProvider);
+                    await updateEvent(
+                      eventId: event.eventId,
+                      name: nameController.text,
+                      description: descriptionController.text.isEmpty
+                          ? null
+                          : descriptionController.text,
+                      datetime: selectedDateTime!,
+                      endDatetime: selectedEndDateTime,
+                      location: locationController.text.isEmpty
+                          ? null
+                          : locationController.text,
+                      maxParticipants: int.parse(maxParticipantsController.text),
+                      fee: int.parse(feeController.text),
+                    );
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('「${nameController.text}」を更新しました'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('イベントの更新に失敗しました: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text('保存'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _showDeleteDialog(BuildContext context, WidgetRef ref) async {

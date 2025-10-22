@@ -117,9 +117,7 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 16),
-          _buildInfoRow(Icons.event, dateFormat.format(event.datetime)),
-          if (event.endDatetime != null)
-            _buildInfoRow(Icons.event_available, dateFormat.format(event.endDatetime!)),
+          _buildInfoRow(Icons.event, _formatEventDateTime(event.datetime, event.endDatetime)),
           if (event.location != null)
             _buildInfoRow(Icons.location_on, event.location!),
           _buildInfoRow(
@@ -516,6 +514,28 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
       return payment.isPaid;
     } catch (e) {
       return false;
+    }
+  }
+
+  String _formatEventDateTime(DateTime startDateTime, DateTime? endDateTime) {
+    final dateFormat = DateFormat('yyyy/MM/dd (E) HH:mm', 'ja');
+    final timeFormat = DateFormat('HH:mm', 'ja');
+
+    if (endDateTime == null) {
+      return dateFormat.format(startDateTime);
+    }
+
+    // 同じ日付かチェック
+    final isSameDay = startDateTime.year == endDateTime.year &&
+                      startDateTime.month == endDateTime.month &&
+                      startDateTime.day == endDateTime.day;
+
+    if (isSameDay) {
+      // 同じ日の場合: "2025/10/22 (月) 14:00 ~ 16:00"
+      return '${dateFormat.format(startDateTime)} ~ ${timeFormat.format(endDateTime)}';
+    } else {
+      // 異なる日の場合: "2025/10/22 (月) 14:00 ~ 2025/10/23 (火) 16:00"
+      return '${dateFormat.format(startDateTime)} ~ ${dateFormat.format(endDateTime)}';
     }
   }
 

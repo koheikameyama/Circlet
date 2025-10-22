@@ -64,10 +64,6 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
             label: 'メンバー',
           ),
           NavigationDestination(
-            icon: Icon(Icons.payment),
-            label: '支払い',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.notifications),
             label: '通知',
           ),
@@ -90,8 +86,6 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
       case 1:
         return _AdminMembersTab(circleId: widget.circleId);
       case 2:
-        return _AdminPaymentsTab(circleId: widget.circleId);
-      case 3:
         return _AdminNotificationsTab(circleId: widget.circleId);
       default:
         return const SizedBox.shrink();
@@ -199,19 +193,23 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                           )
                         : null,
                     onTap: () async {
-                      final initialDate = selectedDateTime ?? DateTime.now();
+                      if (selectedDateTime == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('先に開始日時を選択してください')),
+                        );
+                        return;
+                      }
+
                       final date = await showDatePicker(
                         context: context,
-                        initialDate: initialDate,
-                        firstDate: initialDate,
+                        initialDate: selectedDateTime!,
+                        firstDate: selectedDateTime!,
                         lastDate: DateTime.now().add(const Duration(days: 365)),
                       );
                       if (date != null && context.mounted) {
                         final time = await showTimePicker(
                           context: context,
-                          initialTime: selectedDateTime != null
-                              ? TimeOfDay.fromDateTime(selectedDateTime!)
-                              : TimeOfDay.now(),
+                          initialTime: TimeOfDay.fromDateTime(selectedDateTime!),
                         );
                         if (time != null) {
                           setState(() {
@@ -313,7 +311,9 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                     );
                     return;
                   }
-                  if (selectedEndDateTime != null && selectedEndDateTime!.isBefore(selectedDateTime!)) {
+                  if (selectedEndDateTime != null &&
+                      (selectedEndDateTime!.isBefore(selectedDateTime!) ||
+                       selectedEndDateTime!.isAtSameMomentAs(selectedDateTime!))) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('終了日時は開始日時より後にしてください')),
                     );
