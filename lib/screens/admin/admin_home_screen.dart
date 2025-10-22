@@ -105,192 +105,432 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
     final maxParticipantsController = TextEditingController(text: '10');
     final feeController = TextEditingController(text: '0');
     DateTime? selectedDateTime;
+    DateTime? selectedEndDateTime;
     bool participateAsCreator = true; // デフォルトで参加する
+    final Set<String> selectedMemberIds = {}; // 選択されたメンバーのID
 
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('イベント作成'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'イベント名',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: '説明',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 12),
-                // 日時選択
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    selectedDateTime == null
-                        ? '日時を選択'
-                        : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja')
-                            .format(selectedDateTime!),
-                    style: TextStyle(
-                      color: selectedDateTime == null ? Colors.grey : null,
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('イベント作成'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'イベント名',
+                      border: OutlineInputBorder(),
                     ),
                   ),
-                  leading: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (date != null && context.mounted) {
-                      final time = await showTimePicker(
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: '説明',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 12),
+                  // 開始日時選択
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      selectedDateTime == null
+                          ? '開始日時を選択'
+                          : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja')
+                              .format(selectedDateTime!),
+                      style: TextStyle(
+                        color: selectedDateTime == null ? Colors.grey : null,
+                      ),
+                    ),
+                    leading: const Icon(Icons.event),
+                    onTap: () async {
+                      final date = await showDatePicker(
                         context: context,
-                        initialTime: TimeOfDay.now(),
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
                       );
-                      if (time != null) {
-                        setState(() {
-                          selectedDateTime = DateTime(
-                            date.year,
-                            date.month,
-                            date.day,
-                            time.hour,
-                            time.minute,
-                          );
-                        });
+                      if (date != null && context.mounted) {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.now(),
+                        );
+                        if (time != null) {
+                          setState(() {
+                            selectedDateTime = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              time.hour,
+                              time.minute,
+                            );
+                          });
+                        }
+                      }
+                    },
+                  ),
+                  // 終了日時選択
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      selectedEndDateTime == null
+                          ? '終了日時を選択（任意）'
+                          : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja')
+                              .format(selectedEndDateTime!),
+                      style: TextStyle(
+                        color: selectedEndDateTime == null ? Colors.grey : null,
+                      ),
+                    ),
+                    leading: const Icon(Icons.event_available),
+                    trailing: selectedEndDateTime != null
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              setState(() {
+                                selectedEndDateTime = null;
+                              });
+                            },
+                          )
+                        : null,
+                    onTap: () async {
+                      final initialDate = selectedDateTime ?? DateTime.now();
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: initialDate,
+                        firstDate: initialDate,
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null && context.mounted) {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: selectedDateTime != null
+                              ? TimeOfDay.fromDateTime(selectedDateTime!)
+                              : TimeOfDay.now(),
+                        );
+                        if (time != null) {
+                          setState(() {
+                            selectedEndDateTime = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              time.hour,
+                              time.minute,
+                            );
+                          });
+                        }
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: locationController,
+                    decoration: const InputDecoration(
+                      labelText: '場所',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: maxParticipantsController,
+                    decoration: const InputDecoration(
+                      labelText: '定員',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: feeController,
+                    decoration: const InputDecoration(
+                      labelText: '参加費',
+                      border: OutlineInputBorder(),
+                      prefixText: '¥',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 16),
+                  // 自分も参加するチェックボックス
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('自分も参加する'),
+                    value: participateAsCreator,
+                    onChanged: (value) {
+                      setState(() {
+                        participateAsCreator = value ?? true;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                  const Divider(),
+                  // 参加メンバー選択ボタン
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.people),
+                    title: const Text('参加メンバーを選択'),
+                    subtitle: Text(
+                      selectedMemberIds.isEmpty
+                          ? '選択なし'
+                          : '${selectedMemberIds.length}人選択中',
+                      style: TextStyle(
+                        color: selectedMemberIds.isEmpty ? Colors.grey : Colors.blue,
+                        fontSize: 12,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () async {
+                      await _showMemberSelectionDialog(
+                        context,
+                        selectedMemberIds,
+                      );
+                      setState(() {}); // 選択数を更新
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('キャンセル'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (nameController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('イベント名を入力してください')),
+                    );
+                    return;
+                  }
+                  if (selectedDateTime == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('開始日時を選択してください')),
+                    );
+                    return;
+                  }
+                  if (selectedEndDateTime != null && selectedEndDateTime!.isBefore(selectedDateTime!)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('終了日時は開始日時より後にしてください')),
+                    );
+                    return;
+                  }
+
+                  Navigator.pop(dialogContext);
+
+                  try {
+                    // イベントを作成
+                    final createEvent = ref.read(createEventProvider);
+                    final eventId = await createEvent(
+                      circleId: widget.circleId,
+                      name: nameController.text,
+                      description: descriptionController.text.isEmpty
+                          ? null
+                          : descriptionController.text,
+                      datetime: selectedDateTime!,
+                      endDatetime: selectedEndDateTime,
+                      location: locationController.text.isEmpty
+                          ? null
+                          : locationController.text,
+                      maxParticipants: int.parse(maxParticipantsController.text),
+                      fee: int.parse(feeController.text),
+                    );
+
+                    final joinEvent = ref.read(joinEventProvider);
+
+                    // 作成者が参加する場合、イベントに参加
+                    if (participateAsCreator) {
+                      final currentUser = ref.read(authStateProvider).value;
+                      if (currentUser != null) {
+                        await joinEvent(
+                          eventId: eventId,
+                          userId: currentUser.uid,
+                        );
                       }
                     }
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: locationController,
-                  decoration: const InputDecoration(
-                    labelText: '場所',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: maxParticipantsController,
-                  decoration: const InputDecoration(
-                    labelText: '定員',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: feeController,
-                  decoration: const InputDecoration(
-                    labelText: '参加費',
-                    border: OutlineInputBorder(),
-                    prefixText: '¥',
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 16),
-                // 自分も参加するチェックボックス
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('自分も参加する'),
-                  value: participateAsCreator,
-                  onChanged: (value) {
-                    setState(() {
-                      participateAsCreator = value ?? true;
-                    });
-                  },
-                  controlAffinity: ListTileControlAffinity.leading,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('キャンセル'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('イベント名を入力してください')),
-                  );
-                  return;
-                }
-                if (selectedDateTime == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('日時を選択してください')),
-                  );
-                  return;
-                }
 
-                Navigator.pop(dialogContext);
-
-                try {
-                  // イベントを作成
-                  final createEvent = ref.read(createEventProvider);
-                  final eventId = await createEvent(
-                    circleId: widget.circleId,
-                    name: nameController.text,
-                    description: descriptionController.text.isEmpty
-                        ? null
-                        : descriptionController.text,
-                    datetime: selectedDateTime!,
-                    location: locationController.text.isEmpty
-                        ? null
-                        : locationController.text,
-                    maxParticipants: int.parse(maxParticipantsController.text),
-                    fee: int.parse(feeController.text),
-                  );
-
-                  // 作成者が参加する場合、イベントに参加
-                  if (participateAsCreator) {
-                    final currentUser = ref.read(authStateProvider).value;
-                    if (currentUser != null) {
-                      final joinEvent = ref.read(joinEventProvider);
+                    // 選択されたメンバーをイベントに追加
+                    for (final memberId in selectedMemberIds) {
                       await joinEvent(
                         eventId: eventId,
-                        userId: currentUser.uid,
+                        userId: memberId,
+                      );
+                    }
+
+                    if (context.mounted) {
+                      final totalParticipants =
+                          (participateAsCreator ? 1 : 0) + selectedMemberIds.length;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '「${nameController.text}」を作成しました（参加者: $totalParticipants人）'
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('イベントの作成に失敗しました: $e'),
+                          backgroundColor: Colors.red,
+                        ),
                       );
                     }
                   }
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('「${nameController.text}」を作成しました'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('イベントの作成に失敗しました: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text('作成'),
-            ),
-          ],
-        ),
+                },
+                child: const Text('作成'),
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  Future<void> _showMemberSelectionDialog(
+    BuildContext context,
+    Set<String> selectedMemberIds,
+  ) async {
+    await showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final circleAsync = ref.watch(circleProvider(widget.circleId));
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('参加メンバーを選択'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: circleAsync.when(
+                  data: (circle) {
+                    if (circle == null) {
+                      return const Text('サークル情報が読み込めません');
+                    }
+
+                    final currentUser = ref.read(authStateProvider).value;
+                    final otherMembers = circle.members
+                        .where((m) => m.userId != currentUser?.uid)
+                        .toList();
+
+                    if (otherMembers.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          '他のメンバーがいません',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      );
+                    }
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 全選択/全解除ボタン
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${selectedMemberIds.length}/${otherMembers.length}人選択',
+                              style: const TextStyle(fontSize: 14, color: Colors.grey),
+                            ),
+                            Row(
+                              children: [
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      selectedMemberIds.clear();
+                                    });
+                                  },
+                                  child: const Text('全解除'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      selectedMemberIds.clear();
+                                      selectedMemberIds.addAll(
+                                        otherMembers.map((m) => m.userId),
+                                      );
+                                    });
+                                  },
+                                  child: const Text('全選択'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const Divider(),
+                        // メンバーリスト
+                        Flexible(
+                          child: ListView(
+                            shrinkWrap: true,
+                            children: otherMembers.map((member) {
+                              return CheckboxListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                                title: FutureBuilder<String>(
+                                  future: _getMemberName(ref, member.userId),
+                                  builder: (context, snapshot) {
+                                    return Text(
+                                      snapshot.data ?? member.userId,
+                                      style: const TextStyle(fontSize: 14),
+                                    );
+                                  },
+                                ),
+                                value: selectedMemberIds.contains(member.userId),
+                                onChanged: (value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      selectedMemberIds.add(member.userId);
+                                    } else {
+                                      selectedMemberIds.remove(member.userId);
+                                    }
+                                  });
+                                },
+                                controlAffinity: ListTileControlAffinity.leading,
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  error: (error, stack) => Center(
+                    child: Text('エラー: $error'),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('閉じる'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<String> _getMemberName(WidgetRef ref, String userId) async {
+    try {
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.getUserData(userId);
+      return user?.name ?? userId;
+    } catch (e) {
+      return userId;
+    }
   }
 
   void _showEditCircleDialog(BuildContext context, circle) {

@@ -7,6 +7,7 @@ import '../../models/payment_model.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/payment_provider.dart';
+import '../../providers/circle_provider.dart';
 
 class AdminEventDetailScreen extends ConsumerWidget {
   final String circleId;
@@ -85,7 +86,7 @@ class AdminEventDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          const Icon(Icons.access_time, color: Colors.white70, size: 18),
+                          const Icon(Icons.event, color: Colors.white70, size: 18),
                           const SizedBox(width: 8),
                           Text(
                             dateFormat.format(event.datetime),
@@ -96,6 +97,22 @@ class AdminEventDetailScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
+                      if (event.endDatetime != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.event_available, color: Colors.white70, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              dateFormat.format(event.endDatetime!),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       if (event.location != null) ...[
                         const SizedBox(height: 8),
                         Row(
@@ -863,28 +880,69 @@ class AdminEventDetailScreen extends ConsumerWidget {
     EventModel event,
   ) async {
     try {
-      // ダミーユーザーIDを生成
-      final now = DateTime.now();
-      final dummyUserId = 'dummy_${now.millisecondsSinceEpoch}';
-      final dummyName = 'ダミー参加者${event.participants.length + 1}';
+      // サークル情報を取得
+      final circleService = ref.read(circleServiceProvider);
+      final circle = await circleService.getCircle(event.circleId);
 
-      // Firestoreにダミーユーザーを作成
-      await ref.read(authServiceProvider).createDummyUser(
-        userId: dummyUserId,
-        name: dummyName,
-      );
+      if (circle == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('サークル情報が取得できませんでした'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // すでに参加しているメンバーのIDリストを取得
+      final participantUserIds = event.participants.map((p) => p.userId).toSet();
+
+      // まだ参加していないメンバーをフィルタリング
+      final availableMembers = circle.members
+          .where((m) => !participantUserIds.contains(m.userId))
+          .toList();
+
+      String userId;
+      String userName;
+
+      if (availableMembers.isEmpty) {
+        // 利用可能なメンバーがいない場合、新しくダミーメンバーを作成
+        final now = DateTime.now();
+        userId = 'dummy_${now.millisecondsSinceEpoch}';
+        userName = 'ダミーメンバー${circle.members.length + 1}';
+
+        // Firestoreにダミーユーザーを作成
+        await ref.read(authServiceProvider).createDummyUser(
+          userId: userId,
+          name: userName,
+        );
+
+        // サークルにメンバーとして追加
+        await circleService.addMember(
+          circleId: event.circleId,
+          userId: userId,
+          role: 'member',
+        );
+      } else {
+        // 既存のメンバーから選択
+        final selectedMember = availableMembers[0];
+        userId = selectedMember.userId;
+        userName = await _getUserName(ref, userId);
+      }
 
       // イベントに参加
       final joinEvent = ref.read(joinEventProvider);
       await joinEvent(
         eventId: event.eventId,
-        userId: dummyUserId,
+        userId: userId,
       );
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$dummyNameを追加しました'),
+            content: Text('$userNameを追加しました'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 1),
           ),

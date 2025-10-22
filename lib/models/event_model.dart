@@ -61,6 +61,7 @@ class EventModel {
   final String name;
   final String? description;
   final DateTime datetime;
+  final DateTime? endDatetime;
   final String? location;
   final int maxParticipants;
   final int? fee;
@@ -74,6 +75,7 @@ class EventModel {
     required this.name,
     this.description,
     required this.datetime,
+    this.endDatetime,
     this.location,
     required this.maxParticipants,
     this.fee,
@@ -90,6 +92,9 @@ class EventModel {
       name: data['name'] ?? '',
       description: data['description'],
       datetime: (data['datetime'] as Timestamp).toDate(),
+      endDatetime: data['endDatetime'] != null
+          ? (data['endDatetime'] as Timestamp).toDate()
+          : null,
       location: data['location'],
       maxParticipants: data['maxParticipants'] ?? 0,
       fee: data['fee'],
@@ -108,6 +113,7 @@ class EventModel {
       'name': name,
       'description': description,
       'datetime': Timestamp.fromDate(datetime),
+      'endDatetime': endDatetime != null ? Timestamp.fromDate(endDatetime!) : null,
       'location': location,
       'maxParticipants': maxParticipants,
       'fee': fee,
@@ -123,6 +129,7 @@ class EventModel {
     String? name,
     String? description,
     DateTime? datetime,
+    DateTime? endDatetime,
     String? location,
     int? maxParticipants,
     int? fee,
@@ -136,6 +143,7 @@ class EventModel {
       name: name ?? this.name,
       description: description ?? this.description,
       datetime: datetime ?? this.datetime,
+      endDatetime: endDatetime ?? this.endDatetime,
       location: location ?? this.location,
       maxParticipants: maxParticipants ?? this.maxParticipants,
       fee: fee ?? this.fee,
