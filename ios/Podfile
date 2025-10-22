@@ -29,7 +29,6 @@ flutter_ios_podfile_setup
 
 target 'Runner' do
   use_frameworks!
-  use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
@@ -42,13 +41,14 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
-      # BoringSSL-GRPC の問題を修正
-      config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
 
-      # BoringSSL-GRPCターゲットの場合、-Gオプションを削除
+      # モジュラーヘッダーの問題を修正（すべてのターゲットに適用）
+      config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+
+      # BoringSSL-GRPCターゲットの場合、C++17標準を使用
       if target.name == 'BoringSSL-GRPC'
-        config.build_settings['OTHER_CFLAGS'] ||= ['$(inherited)']
-        config.build_settings['OTHER_CFLAGS'].delete('-G')
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
       end
     end
   end
