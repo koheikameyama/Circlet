@@ -237,7 +237,7 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                       border: OutlineInputBorder(),
                       hintText: '場所を入力',
                     ),
-                    debounceTime: 600,
+                    debounceTime: 300,
                     countries: const ["jp"],
                     isLatLngRequired: false,
                     getPlaceDetailWithLatLng: (Prediction prediction) {
