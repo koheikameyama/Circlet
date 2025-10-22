@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'config/firebase_emulator_config.dart';
 import 'providers/auth_provider.dart';
@@ -62,6 +63,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // .envファイルを読み込む
+  await dotenv.load(fileName: ".env");
 
   // Initialize Japanese locale for date formatting
   await initializeDateFormatting('ja');

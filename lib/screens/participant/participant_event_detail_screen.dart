@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/event_model.dart';
 import '../../models/payment_model.dart';
 import '../../providers/auth_provider.dart';
@@ -119,7 +120,29 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           _buildInfoRow(Icons.event, _formatEventDateTime(event.datetime, event.endDatetime)),
           if (event.location != null)
-            _buildInfoRow(Icons.location_on, event.location!),
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: InkWell(
+                onTap: () => _openGoogleMaps(event.location!),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 18, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        event.location!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.white,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.open_in_new, size: 14, color: Colors.white),
+                  ],
+                ),
+              ),
+            ),
           _buildInfoRow(
             Icons.people,
             '定員: ${event.confirmedCount}/${event.maxParticipants}人',
@@ -536,6 +559,15 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
     } else {
       // 異なる日の場合: "2025/10/22 (月) 14:00 ~ 2025/10/23 (火) 16:00"
       return '${dateFormat.format(startDateTime)} ~ ${dateFormat.format(endDateTime)}';
+    }
+  }
+
+  Future<void> _openGoogleMaps(String location) async {
+    final encodedLocation = Uri.encodeComponent(location);
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedLocation');
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 

@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:google_places_flutter/google_places_flutter.dart';
+import 'package:google_places_flutter/model/prediction.dart';
 import '../../providers/circle_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../models/event_model.dart';
+import '../../config/api_keys.dart';
 import 'admin_event_detail_screen.dart';
 
 class AdminHomeScreen extends ConsumerStatefulWidget {
@@ -226,12 +229,44 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: locationController,
-                    decoration: const InputDecoration(
+                  GooglePlaceAutoCompleteTextField(
+                    textEditingController: locationController,
+                    googleAPIKey: ApiKeys.googlePlacesApiKey,
+                    inputDecoration: const InputDecoration(
                       labelText: '場所',
                       border: OutlineInputBorder(),
+                      hintText: '場所を入力',
                     ),
+                    debounceTime: 600,
+                    countries: const ["jp"],
+                    isLatLngRequired: false,
+                    getPlaceDetailWithLatLng: (Prediction prediction) {
+                      // 場所が選択された時の処理
+                      locationController.text = prediction.description ?? '';
+                    },
+                    itemClick: (Prediction prediction) {
+                      locationController.text = prediction.description ?? '';
+                    },
+                    seperatedBuilder: const Divider(),
+                    itemBuilder: (context, index, Prediction prediction) {
+                      return Container(
+                        padding: const EdgeInsets.all(10),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.location_on, color: Colors.grey),
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: Text(
+                                prediction.description ?? "",
+                                style: const TextStyle(fontSize: 14),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            )
+                          ],
+                        ),
+                      );
+                    },
+                    isCrossBtnShown: true,
                   ),
                   const SizedBox(height: 12),
                   TextField(

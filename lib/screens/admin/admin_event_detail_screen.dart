@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:google_places_flutter/google_places_flutter.dart';
+import 'package:google_places_flutter/model/prediction.dart';
 import '../../models/event_model.dart';
 import '../../models/payment_model.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../providers/circle_provider.dart';
+import '../../config/api_keys.dart';
 
 class AdminEventDetailScreen extends ConsumerWidget {
   final String circleId;
@@ -110,18 +114,26 @@ class AdminEventDetailScreen extends ConsumerWidget {
                       ),
                       if (event.location != null) ...[
                         const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on, color: Colors.white70, size: 18),
-                            const SizedBox(width: 8),
-                            Text(
-                              event.location!,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.white70,
+                        InkWell(
+                          onTap: () => _openGoogleMaps(event.location!),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_on, color: Colors.white70, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  event.location!,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white70,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              const Icon(Icons.open_in_new, color: Colors.white70, size: 14),
+                            ],
+                          ),
                         ),
                       ],
                       const SizedBox(height: 8),
@@ -344,6 +356,15 @@ class AdminEventDetailScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _openGoogleMaps(String location) async {
+    final encodedLocation = Uri.encodeComponent(location);
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedLocation');
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
   Future<String> _getUserName(WidgetRef ref, String userId) async {
     try {
       final authService = ref.read(authServiceProvider);
@@ -542,12 +563,43 @@ class AdminEventDetailScreen extends ConsumerWidget {
                     },
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: locationController,
-                    decoration: const InputDecoration(
+                  GooglePlaceAutoCompleteTextField(
+                    textEditingController: locationController,
+                    googleAPIKey: ApiKeys.googlePlacesApiKey,
+                    inputDecoration: const InputDecoration(
                       labelText: '場所',
                       border: OutlineInputBorder(),
+                      hintText: '場所を入力',
                     ),
+                    debounceTime: 600,
+                    countries: const ["jp"],
+                    isLatLngRequired: false,
+                    getPlaceDetailWithLatLng: (Prediction prediction) {
+                      locationController.text = prediction.description ?? '';
+                    },
+                    itemClick: (Prediction prediction) {
+                      locationController.text = prediction.description ?? '';
+                    },
+                    seperatedBuilder: const Divider(),
+                    itemBuilder: (context, index, Prediction prediction) {
+                      return Container(
+                        padding: const EdgeInsets.all(10),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.location_on, color: Colors.grey),
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: Text(
+                                prediction.description ?? "",
+                                style: const TextStyle(fontSize: 14),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            )
+                          ],
+                        ),
+                      );
+                    },
+                    isCrossBtnShown: true,
                   ),
                   const SizedBox(height: 12),
                   TextField(
