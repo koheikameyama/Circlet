@@ -24,6 +24,12 @@ class CircleSelectionScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('サークル選択'),
         actions: [
+          // プロフィールボタン
+          IconButton(
+            icon: const Icon(Icons.person),
+            tooltip: 'プロフィール',
+            onPressed: () => context.push('/profile'),
+          ),
           // サークル作成ボタン
           IconButton(
             icon: const Icon(Icons.add),

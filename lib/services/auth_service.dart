@@ -388,4 +388,28 @@ class AuthService {
       rethrow;
     }
   }
+
+  // ユーザープロフィールを更新
+  Future<void> updateUserProfile({
+    required String userId,
+    String? name,
+    String? profileImageUrl,
+    String? email,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'updatedAt': Timestamp.now(),
+      };
+
+      if (name != null) updates['name'] = name;
+      if (profileImageUrl != null) updates['profileImageUrl'] = profileImageUrl;
+      if (email != null) updates['email'] = email;
+
+      await _firestore.collection('users').doc(userId).update(updates);
+      print('User profile updated: $userId');
+    } catch (e) {
+      print('Error updating user profile: $e');
+      rethrow;
+    }
+  }
 }

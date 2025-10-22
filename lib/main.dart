@@ -12,6 +12,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/circle_selection_screen.dart';
 import 'screens/participant/participant_home_screen.dart';
 import 'screens/admin/admin_home_screen.dart';
+import 'screens/profile/profile_edit_screen.dart';
 
 // GoRouterのProvider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -56,6 +57,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final circleId = state.pathParameters['circleId']!;
           return AdminHomeScreen(circleId: circleId);
         },
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileEditScreen(),
       ),
     ],
   );
