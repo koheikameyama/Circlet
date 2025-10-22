@@ -24,6 +24,14 @@ class CircleSelectionScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('サークル選択'),
         actions: [
+          // サークル作成ボタン
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'サークル作成',
+            onPressed: () {
+              _showCreateCircleDialog(context, ref, currentUser.uid);
+            },
+          ),
           // デバッグ用：テストサークル作成（メンバーとして参加）
           IconButton(
             icon: const Icon(Icons.bug_report),
@@ -216,13 +224,6 @@ class CircleSelectionScreen extends ConsumerWidget {
         error: (error, stack) => Center(
           child: Text('エラーが発生しました: $error'),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          _showCreateCircleDialog(context, ref, currentUser.uid);
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('サークル作成'),
       ),
     );
   }
