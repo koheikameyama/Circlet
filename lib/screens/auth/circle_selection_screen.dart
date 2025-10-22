@@ -159,7 +159,7 @@ class CircleSelectionScreen extends ConsumerWidget {
       body: circlesAsync.when(
         data: (circles) {
           if (circles.isEmpty) {
-            return _buildEmptyState(context);
+            return _buildEmptyState(context, ref, currentUser.uid);
           }
 
           return ListView.builder(
@@ -228,7 +228,7 @@ class CircleSelectionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref, String userId) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -252,6 +252,17 @@ class CircleSelectionScreen extends ConsumerWidget {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey[500],
                 ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              _showCreateCircleDialog(context, ref, userId);
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('サークルを作成'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            ),
           ),
         ],
       ),
