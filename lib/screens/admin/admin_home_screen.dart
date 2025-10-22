@@ -43,9 +43,15 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
           onPressed: () => context.go('/circles'),
         ),
         actions: [
+          // 編集ボタン
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.edit),
             onPressed: () => _showEditCircleDialog(context, circleAsync.value),
+          ),
+          // 削除ボタン
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () => _showDeleteCircleDialog(context, circleAsync.value),
           ),
         ],
       ),
@@ -656,6 +662,59 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
               }
             },
             child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteCircleDialog(BuildContext context, circle) {
+    if (circle == null) return;
+
+    showDialog(
+      context: context,
+      builder: (confirmContext) => AlertDialog(
+        title: const Text('サークル削除'),
+        content: Text('「${circle.name}」を削除しますか？\nこの操作は取り消せません。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(confirmContext, false),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(confirmContext);
+
+              try {
+                final circleService = ref.read(circleServiceProvider);
+                await circleService.deleteCircle(widget.circleId);
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('サークルを削除しました'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  // サークル選択画面に戻る
+                  context.go('/circles');
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('削除に失敗しました: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('削除'),
           ),
         ],
       ),

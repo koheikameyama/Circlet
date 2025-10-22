@@ -63,10 +63,6 @@ class _ParticipantHomeScreenState
             label: 'メンバー',
           ),
           NavigationDestination(
-            icon: Icon(Icons.payment),
-            label: '支払い',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.notifications),
             label: '通知',
           ),
@@ -82,8 +78,6 @@ class _ParticipantHomeScreenState
       case 1:
         return const _MembersTab();
       case 2:
-        return const _PaymentsTab();
-      case 3:
         return const _NotificationsTab();
       default:
         return const SizedBox.shrink();
