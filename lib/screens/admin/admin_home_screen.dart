@@ -242,10 +242,10 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                     isLatLngRequired: false,
                     getPlaceDetailWithLatLng: (Prediction prediction) {
                       // 場所が選択された時の処理
-                      locationController.text = prediction.description ?? '';
+                      locationController.text = prediction.structuredFormatting?.mainText ?? prediction.description ?? '';
                     },
                     itemClick: (Prediction prediction) {
-                      locationController.text = prediction.description ?? '';
+                      locationController.text = prediction.structuredFormatting?.mainText ?? prediction.description ?? '';
                     },
                     seperatedBuilder: const Divider(),
                     itemBuilder: (context, index, Prediction prediction) {
@@ -256,10 +256,21 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                             const Icon(Icons.location_on, color: Colors.grey),
                             const SizedBox(width: 7),
                             Expanded(
-                              child: Text(
-                                prediction.description ?? "",
-                                style: const TextStyle(fontSize: 14),
-                                overflow: TextOverflow.ellipsis,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    prediction.structuredFormatting?.mainText ?? prediction.description ?? "",
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (prediction.structuredFormatting?.secondaryText != null)
+                                    Text(
+                                      prediction.structuredFormatting!.secondaryText!,
+                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
                               ),
                             )
                           ],
