@@ -1149,43 +1149,6 @@ class _AdminMembersTab extends ConsumerWidget {
 
         return Column(
           children: [
-            // サークル情報
-            if (circle.description.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.info_outline, size: 20),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'サークル説明',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          circle.description,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
             // デバッグ用：ダミーメンバー追加ボタン
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
