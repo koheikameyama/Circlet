@@ -42,3 +42,9 @@ final signOutProvider = Provider<Future<void> Function()>((ref) {
     await authService.signOut();
   };
 });
+
+// 特定のユーザー情報を取得するProvider
+final userDataProvider = StreamProvider.family<UserModel?, String>((ref, userId) {
+  final authService = ref.watch(authServiceProvider);
+  return authService.getUserDataStream(userId);
+});

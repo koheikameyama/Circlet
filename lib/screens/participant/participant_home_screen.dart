@@ -72,7 +72,7 @@ class _ParticipantHomeScreenState
       case 0:
         return _EventListTab(circleId: widget.circleId);
       case 1:
-        return const _MembersTab();
+        return _MembersTab(circleId: widget.circleId);
       default:
         return const SizedBox.shrink();
     }
@@ -389,38 +389,106 @@ class _ParticipantEventCard extends ConsumerWidget {
 }
 
 // メンバータブ
-class _MembersTab extends StatelessWidget {
-  const _MembersTab();
+class _MembersTab extends ConsumerWidget {
+  final String circleId;
+
+  const _MembersTab({
+    required this.circleId,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    // Mock member data
-    final mockMembers = [
-      {'name': '山田太郎', 'role': '管理者', 'tags': ['レギュラー']},
-      {'name': '佐藤花子', 'role': 'メンバー', 'tags': []},
-      {'name': '鈴木一郎', 'role': 'メンバー', 'tags': ['初心者']},
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final circleAsync = ref.watch(circleProvider(circleId));
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: mockMembers.length,
-      itemBuilder: (context, index) {
-        final member = mockMembers[index];
+    return circleAsync.when(
+      data: (circle) {
+        if (circle == null) {
+          return const Center(
+            child: Text('サークル情報を取得できませんでした'),
+          );
+        }
+
+        if (circle.members.isEmpty) {
+          return const Center(
+            child: Text('メンバーがいません'),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: circle.members.length,
+          itemBuilder: (context, index) {
+            final member = circle.members[index];
+            return _MemberCard(
+              circleId: circleId,
+              member: member,
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Text('エラーが発生しました: $error'),
+      ),
+    );
+  }
+}
+
+// メンバーカード
+class _MemberCard extends ConsumerWidget {
+  final String circleId;
+  final dynamic member;
+
+  const _MemberCard({
+    required this.circleId,
+    required this.member,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userDataAsync = ref.watch(userDataProvider(member.userId));
+
+    return userDataAsync.when(
+      data: (userData) {
+        final displayName = userData?.name ?? '名前未設定';
+        final profileImageUrl = userData?.profileImageUrl;
+
         return Card(
+          margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            leading: const CircleAvatar(
-              child: Icon(Icons.person),
+            leading: CircleAvatar(
+              backgroundImage: profileImageUrl != null
+                  ? NetworkImage(profileImageUrl)
+                  : null,
+              child: profileImageUrl == null
+                  ? const Icon(Icons.person)
+                  : null,
             ),
-            title: Text(member['name'] as String),
-            subtitle: Text(member['role'] as String),
-            trailing: (member['tags'] as List).isNotEmpty
+            title: Text(
+              displayName,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: Text(
+              member.role == 'admin' ? '管理者' : 'メンバー',
+              style: TextStyle(
+                color: member.role == 'admin' ? Colors.blue : Colors.grey[700],
+                fontWeight: member.role == 'admin' ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            trailing: member.tags.isNotEmpty
                 ? Wrap(
                     spacing: 4,
-                    children: (member['tags'] as List)
-                        .map((tag) => Chip(
-                              label: Text(tag as String),
+                    children: member.tags
+                        .map<Widget>((tag) => Chip(
+                              label: Text(
+                                tag as String,
+                                style: const TextStyle(fontSize: 12),
+                              ),
                               materialTapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
                             ))
                         .toList(),
                   )
@@ -428,6 +496,30 @@ class _MembersTab extends StatelessWidget {
           ),
         );
       },
+      loading: () => Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: ListTile(
+          leading: const CircleAvatar(
+            child: Icon(Icons.person),
+          ),
+          title: const Text('読み込み中...'),
+          subtitle: Text(
+            member.role == 'admin' ? '管理者' : 'メンバー',
+          ),
+        ),
+      ),
+      error: (error, stack) => Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: ListTile(
+          leading: const CircleAvatar(
+            child: Icon(Icons.person),
+          ),
+          title: Text('User ID: ${member.userId}'),
+          subtitle: Text(
+            member.role == 'admin' ? '管理者' : 'メンバー',
+          ),
+        ),
+      ),
     );
   }
 }
