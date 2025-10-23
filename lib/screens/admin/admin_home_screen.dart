@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:share_plus/share_plus.dart';
@@ -644,61 +643,65 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                 Text('招待リンク'),
               ],
             ),
-            content: SizedBox(
-              width: 280,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'このQRコードを共有してメンバーを招待できます',
-                    style: TextStyle(fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  // QRコード
-                  Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.all(20),
-                    child: QrImageView(
-                      data: inviteUrl,
-                      version: QrVersions.auto,
-                      size: 220.0,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // コピーリンク
-                  InkWell(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: inviteUrl));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('リンクをコピーしました'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        '招待リンクをコピー',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.primary,
-                          decoration: TextDecoration.underline,
-                        ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  '招待リンクを共有してメンバーを招待できます',
+                  style: TextStyle(fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                // コピーリンク
+                InkWell(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: inviteUrl));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('リンクをコピーしました'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '有効期限: ${DateFormat('yyyy/MM/dd HH:mm').format(invite.expiresAt)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.copy,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '招待リンクをコピー',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '有効期限: ${DateFormat('yyyy/MM/dd HH:mm').format(invite.expiresAt)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
             actionsAlignment: MainAxisAlignment.spaceBetween,
             actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -1182,33 +1185,6 @@ class _AdminMembersTab extends ConsumerWidget {
                   ),
                 ),
               ),
-
-            // 招待QRコード
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      const Text(
-                        '招待用QRコード',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      QrImageView(
-                        data: 'invite://circle/$circleId',
-                        version: QrVersions.auto,
-                        size: 200,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
 
             // デバッグ用：ダミーメンバー追加ボタン
             Padding(

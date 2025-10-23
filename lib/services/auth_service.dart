@@ -95,6 +95,9 @@ class AuthService {
   // LINE IDで既存ユーザーを検索
   Future<UserModel?> _findUserByLineId(String lineUserId) async {
     try {
+      // 認証状態がFirestoreに伝わるまで少し待機
+      await Future.delayed(const Duration(milliseconds: 500));
+
       final querySnapshot = await _firestore
           .collection('users')
           .where('lineUserId', isEqualTo: lineUserId)
@@ -107,6 +110,20 @@ class AuthService {
       return null;
     } catch (e) {
       print('Error finding user by LINE ID: $e');
+      // エラーが発生した場合、もう一度試行
+      try {
+        await Future.delayed(const Duration(milliseconds: 1000));
+        final retrySnapshot = await _firestore
+            .collection('users')
+            .where('lineUserId', isEqualTo: lineUserId)
+            .limit(1)
+            .get();
+        if (retrySnapshot.docs.isNotEmpty) {
+          return UserModel.fromFirestore(retrySnapshot.docs.first);
+        }
+      } catch (retryError) {
+        print('Retry also failed: $retryError');
+      }
       return null;
     }
   }

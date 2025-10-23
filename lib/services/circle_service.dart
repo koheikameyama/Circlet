@@ -297,6 +297,15 @@ class CircleService {
         await event.reference.delete();
       }
 
+      // サークルに関連する招待リンクを削除
+      final invites = await _firestore
+          .collection('invites')
+          .where('circleId', isEqualTo: circleId)
+          .get();
+      for (final invite in invites.docs) {
+        await invite.reference.delete();
+      }
+
       // サークルを削除
       await _firestore.collection('circles').doc(circleId).delete();
     } catch (e) {
