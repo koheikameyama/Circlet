@@ -50,6 +50,11 @@ post_install do |installer|
         config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
         config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
       end
+
+      # Firebase関連のFlutterプラグインのモジュール定義を無効化
+      if target.name.include?('firebase_') || target.name.include?('cloud_firestore')
+        config.build_settings['DEFINES_MODULE'] = 'NO'
+      end
     end
   end
 end
