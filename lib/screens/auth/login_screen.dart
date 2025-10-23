@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../main.dart';
+import '../../services/circle_service.dart';
+import '../../services/deep_link_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -23,7 +26,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final credential = await authService.signInWithLine();
 
       if (credential != null && mounted) {
-        context.go('/circles');
+        // 保留中の招待があるかチェック
+        final pendingInviteId = ref.read(pendingInviteProvider);
+
+        if (pendingInviteId != null) {
+          // 保留中の招待をクリア
+          ref.read(pendingInviteProvider.notifier).state = null;
+
+          // 招待確認ダイアログを表示
+          await _showInviteConfirmationDialog(pendingInviteId);
+        } else {
+          // 招待がない場合は通常通りサークル選択画面へ
+          context.go('/circles');
+        }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -47,6 +62,136 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  // 招待確認ダイアログを表示
+  Future<void> _showInviteConfirmationDialog(String inviteId) async {
+    final circleService = CircleService();
+    final deepLinkService = ref.read(deepLinkServiceProvider);
+
+    // ローディング表示
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // 招待情報を取得
+      final details = await circleService.getInviteDetails(inviteId);
+
+      if (!mounted) return;
+      Navigator.pop(context); // ローディングを閉じる
+
+      if (details == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('招待リンクが無効または期限切れです')),
+        );
+        context.go('/circles');
+        return;
+      }
+
+      final circle = details['circle'];
+      final circleName = circle?.name ?? '不明なサークル';
+
+      // 確認ダイアログを表示
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('サークルへの招待'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('以下のサークルに参加しますか？'),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.group, color: Colors.blue, size: 32),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            circleName,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (circle?.description?.isNotEmpty ?? false)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                circle!.description,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[700],
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('キャンセル'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('参加する'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (confirmed == true) {
+        // 参加処理を実行
+        final success = await deepLinkService.handleInviteLink(inviteId);
+
+        if (!mounted) return;
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$circleNameに参加しました')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('サークルへの参加に失敗しました')),
+          );
+        }
+      }
+
+      // どちらの場合もサークル選択画面へ
+      context.go('/circles');
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // ローディングを閉じる（もし残っていれば）
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('エラーが発生しました: $e')),
+      );
+      context.go('/circles');
     }
   }
 

@@ -1,14 +1,18 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../providers/circle_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../models/event_model.dart';
+import '../../services/circle_service.dart';
 import '../../config/api_keys.dart';
 import 'admin_event_detail_screen.dart';
 
@@ -43,6 +47,11 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
           onPressed: () => context.go('/circles'),
         ),
         actions: [
+          // 招待リンク生成ボタン
+          IconButton(
+            icon: const Icon(Icons.person_add),
+            onPressed: () => _showInviteLinkDialog(context, widget.circleId),
+          ),
           // 編集ボタン
           IconButton(
             icon: const Icon(Icons.edit),
@@ -576,6 +585,163 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
       return user?.name ?? userId;
     } catch (e) {
       return userId;
+    }
+  }
+
+  // 招待リンクダイアログを表示
+  void _showInviteLinkDialog(BuildContext context, String circleId) async {
+    final circleService = CircleService();
+    final currentUser = ref.read(authStateProvider).value;
+
+    if (currentUser == null) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ログインが必要です')),
+      );
+      return;
+    }
+
+    // ローディング表示
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // 招待リンクを作成（15秒でタイムアウト）
+      final invite = await circleService.createInviteLink(
+        circleId: circleId,
+        createdBy: currentUser.uid,
+        validDays: 7,
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('招待リンクの作成がタイムアウトしました。インターネット接続を確認してください。');
+        },
+      );
+
+      final inviteUrl = circleService.generateInviteUrl(invite.inviteId);
+
+      if (!context.mounted) return;
+
+      Navigator.pop(context); // ローディングを閉じる
+
+      // ダイアログを閉じた後、少し待ってから次のダイアログを表示
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      if (!context.mounted) return;
+
+      // 招待リンクダイアログを表示
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.link, color: Colors.blue),
+                SizedBox(width: 8),
+                Text('招待リンク'),
+              ],
+            ),
+            content: SizedBox(
+              width: 280,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'このQRコードを共有してメンバーを招待できます',
+                    style: TextStyle(fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  // QRコード
+                  Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.all(20),
+                    child: QrImageView(
+                      data: inviteUrl,
+                      version: QrVersions.auto,
+                      size: 220.0,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // コピーリンク
+                  InkWell(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: inviteUrl));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('リンクをコピーしました'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        '招待リンクをコピー',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '有効期限: ${DateFormat('yyyy/MM/dd HH:mm').format(invite.expiresAt)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actionsAlignment: MainAxisAlignment.spaceBetween,
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('閉じる'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Share.share(
+                    'サークルに招待します！\n$inviteUrl',
+                    subject: 'サークル招待',
+                  );
+                },
+                icon: Icon(Platform.isIOS ? Icons.ios_share : Icons.share),
+                label: const Text('共有'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      // ローディングダイアログを閉じる
+      try {
+        Navigator.pop(context);
+      } catch (popError) {
+        print('Error closing dialog: $popError');
+      }
+
+      // エラーメッセージを表示（詳細を含む）
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('招待リンクの作成に失敗しました\n\nエラー: $e'),
+          duration: const Duration(seconds: 10),
+          action: SnackBarAction(
+            label: '閉じる',
+            onPressed: () {},
+          ),
+        ),
+      );
     }
   }
 

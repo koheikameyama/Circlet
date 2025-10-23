@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/circle_model.dart';
+import '../models/invite_model.dart';
 
 class CircleService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -304,12 +305,150 @@ class CircleService {
     }
   }
 
-  // 招待リンク用のトークンを生成
+  // 招待リンクを作成（7日間有効）
+  Future<InviteModel> createInviteLink({
+    required String circleId,
+    required String createdBy,
+    int validDays = 7,
+  }) async {
+    try {
+      final inviteId = _uuid.v4();
+      final now = DateTime.now();
+      final invite = InviteModel(
+        inviteId: inviteId,
+        circleId: circleId,
+        createdBy: createdBy,
+        createdAt: now,
+        expiresAt: now.add(Duration(days: validDays)),
+        isActive: true,
+      );
+
+      await _firestore
+          .collection('invites')
+          .doc(inviteId)
+          .set(invite.toFirestore());
+
+      return invite;
+    } catch (e) {
+      print('Error creating invite link: $e');
+      rethrow;
+    }
+  }
+
+  // 招待リンクを検証
+  Future<InviteModel?> validateInvite(String inviteId) async {
+    try {
+      final doc = await _firestore.collection('invites').doc(inviteId).get();
+      if (!doc.exists) {
+        return null;
+      }
+
+      final invite = InviteModel.fromFirestore(doc);
+      return invite.isValid ? invite : null;
+    } catch (e) {
+      print('Error validating invite: $e');
+      return null;
+    }
+  }
+
+  // 招待リンクの詳細情報を取得（サークル名を含む）
+  Future<Map<String, dynamic>?> getInviteDetails(String inviteId) async {
+    try {
+      final invite = await validateInvite(inviteId);
+      if (invite == null) {
+        return null;
+      }
+
+      final circle = await getCircle(invite.circleId);
+      if (circle == null) {
+        return null;
+      }
+
+      return {
+        'invite': invite,
+        'circle': circle,
+      };
+    } catch (e) {
+      print('Error getting invite details: $e');
+      return null;
+    }
+  }
+
+  // 招待リンクを使ってサークルに参加
+  Future<bool> joinCircleWithInvite({
+    required String inviteId,
+    required String userId,
+  }) async {
+    try {
+      // 招待リンクを検証
+      final invite = await validateInvite(inviteId);
+      if (invite == null) {
+        print('Invalid or expired invite');
+        return false;
+      }
+
+      // 既にメンバーかチェック
+      final circle = await getCircle(invite.circleId);
+      if (circle == null) {
+        print('Circle not found');
+        return false;
+      }
+
+      if (circle.isMember(userId)) {
+        print('User is already a member');
+        return true; // 既にメンバーなので成功として扱う
+      }
+
+      // メンバーとして追加
+      await addMember(
+        circleId: invite.circleId,
+        userId: userId,
+        role: 'member',
+      );
+
+      return true;
+    } catch (e) {
+      print('Error joining circle with invite: $e');
+      return false;
+    }
+  }
+
+  // 招待リンクを無効化
+  Future<void> deactivateInvite(String inviteId) async {
+    try {
+      await _firestore.collection('invites').doc(inviteId).update({
+        'isActive': false,
+      });
+    } catch (e) {
+      print('Error deactivating invite: $e');
+      rethrow;
+    }
+  }
+
+  // サークルの全招待リンクを取得
+  Stream<List<InviteModel>> getCircleInvites(String circleId) {
+    return _firestore
+        .collection('invites')
+        .where('circleId', isEqualTo: circleId)
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => InviteModel.fromFirestore(doc))
+            .where((invite) => invite.isValid)
+            .toList());
+  }
+
+  // 招待リンクのURLを生成
+  String generateInviteUrl(String inviteId) {
+    return 'grumane://invite/$inviteId';
+  }
+
+  // 招待リンク用のトークンを生成（旧メソッド - 互換性のため残す）
   String generateInviteToken(String circleId) {
     return '$circleId:${_uuid.v4()}';
   }
 
-  // 招待トークンからサークルIDを抽出
+  // 招待トークンからサークルIDを抽出（旧メソッド - 互換性のため残す）
   String? getCircleIdFromToken(String token) {
     final parts = token.split(':');
     if (parts.length == 2) {

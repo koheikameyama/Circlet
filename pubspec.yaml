@@ -48,6 +48,9 @@ dependencies:
   # LINE Login
   flutter_line_sdk: ^2.3.5
 
+  # Deep Links
+  uni_links: ^0.5.1
+
   # UI Components
   flutter_svg: ^2.0.9
   cached_network_image: ^3.3.1
@@ -76,6 +79,7 @@ dependencies:
   uuid: ^4.3.3
   google_places_flutter: ^2.0.9
   flutter_dotenv: ^5.1.0
+  share_plus: ^7.2.1
 
   # Routing
   go_router: ^13.0.0
