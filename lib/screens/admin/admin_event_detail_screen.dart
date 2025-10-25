@@ -6,13 +6,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import '../../models/event_model.dart';
-import '../../models/payment_model.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/payment_provider.dart';
-import '../../providers/circle_provider.dart';
 import '../../config/api_keys.dart';
 import 'admin_event_participants_screen.dart';
+import 'admin_event_payments_screen.dart';
 
 class AdminEventDetailScreen extends ConsumerWidget {
   final String circleId;
@@ -283,13 +282,12 @@ class AdminEventDetailScreen extends ConsumerWidget {
                   ),
                 ],
 
-                // 支払い管理
-                if (event.fee != null && event.fee! > 0) ...[
+                // 支払い管理（参加費がある場合のみ表示）
+                if (event.fee != null && event.fee! > 0)
                   Padding(
                     padding: const EdgeInsets.all(16),
-                    child: _buildPaymentManagementSection(ref, event),
+                    child: _buildPaymentManagementSection(context, ref, event),
                   ),
-                ],
 
                 // 参加者一覧と支払い状況
                 Padding(
@@ -759,104 +757,119 @@ class AdminEventDetailScreen extends ConsumerWidget {
     }
   }
 
-  // 支払い管理セクション
-  Widget _buildPaymentManagementSection(WidgetRef ref, EventModel event) {
+  // 支払い管理サマリーセクション
+  Widget _buildPaymentManagementSection(BuildContext context, WidgetRef ref, EventModel event) {
     final paymentsAsync = ref.watch(eventPaymentsProvider(event.eventId));
 
-    return paymentsAsync.when(
-      data: (payments) {
-        final paidCount = payments.where((p) => p.isPaid).length;
-        final totalCount = event.confirmedCount;
-        final totalAmount = event.fee! * totalCount;
-        final paidAmount = payments.where((p) => p.isPaid).fold<int>(
-              0,
-              (sum, payment) => sum + payment.amount,
-            );
-
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.payments, color: Colors.blue),
-                    const SizedBox(width: 8),
-                    const Text(
-                      '支払い管理',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildPaymentStatusCard(
-                        '支払い済み',
-                        '$paidCount/$totalCount人',
-                        Colors.green,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildPaymentStatusCard(
-                        '未払い',
-                        '${totalCount - paidCount}人',
-                        Colors.orange,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '合計金額',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '¥${paidAmount.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')} / ¥${totalAmount.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ],
+                const Icon(Icons.payment, color: Colors.green),
+                const SizedBox(width: 8),
+                const Text(
+                  '支払い管理',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-          ),
-        );
-      },
-      loading: () => const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ),
-      error: (error, stack) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text('エラー: $error'),
+            const SizedBox(height: 16),
+            paymentsAsync.when(
+              data: (payments) {
+                final paidCount = payments.where((p) => p.isPaid).length;
+                final totalCount = event.confirmedCount;
+                final totalAmount = (event.fee ?? 0) * totalCount;
+                final paidAmount = payments.where((p) => p.isPaid).fold<int>(
+                  0,
+                  (sum, payment) => sum + payment.amount,
+                );
+
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildPaymentStatusCard(
+                            '支払い済み',
+                            '$paidCount/$totalCount人',
+                            Colors.green,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildPaymentStatusCard(
+                            '未払い',
+                            '${totalCount - paidCount}人',
+                            Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '合計金額',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '¥$paidAmount / ¥$totalAmount',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => AdminEventPaymentsScreen(
+                                circleId: circleId,
+                                eventId: eventId,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.payment),
+                        label: const Text('支払状況を見る'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Text('エラー: $error'),
+            ),
+          ],
         ),
       ),
     );

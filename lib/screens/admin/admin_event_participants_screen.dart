@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/event_model.dart';
-import '../../models/payment_model.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/payment_provider.dart';
 import '../../providers/circle_provider.dart';
 
 class AdminEventParticipantsScreen extends ConsumerWidget {
@@ -91,8 +89,6 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
   }
 
   Widget _buildParticipantsSection(BuildContext context, WidgetRef ref, EventModel event) {
-    final paymentsAsync = ref.watch(eventPaymentsProvider(event.eventId));
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -133,244 +129,184 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                 ),
               )
             else
-              paymentsAsync.when(
-                data: (payments) {
-                  // 参加者をステータス順にソート（参加確定 → キャンセル待ち）
-                final sortedParticipants = List<EventParticipant>.from(event.participants)
-                  ..sort((a, b) {
-                    // 参加確定を先に、キャンセル待ちを後に
-                    if (a.status == ParticipationStatus.confirmed && b.status != ParticipationStatus.confirmed) {
-                      return -1;
-                    } else if (a.status != ParticipationStatus.confirmed && b.status == ParticipationStatus.confirmed) {
-                      return 1;
-                    }
-                    // 同じステータスの場合は登録日時順
-                    return a.registeredAt.compareTo(b.registeredAt);
-                  });
-
-                return SizedBox(
-                    width: double.infinity,
-                    child: DataTable(
-                      headingRowHeight: 36,
-                      dataRowHeight: 48,
-                      columnSpacing: 16,
-                      horizontalMargin: 0,
-                      headingRowColor: MaterialStateProperty.all(Colors.blue.shade50),
-                      columns: [
-                        DataColumn(
-                          label: Expanded(
-                            child: Center(
-                              child: Text(
-                                '名前',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: Colors.blue.shade900,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        DataColumn(
-                          label: Expanded(
-                            child: Center(
-                              child: Text(
-                                '参加ステータス',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: Colors.blue.shade900,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (event.fee != null && event.fee! > 0)
-                          DataColumn(
-                            label: Expanded(
-                              child: Center(
-                                child: Text(
-                                  '支払い済み',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    color: Colors.blue.shade900,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        DataColumn(
-                          label: Expanded(
-                            child: Center(
-                              child: Text(
-                                '操作',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: Colors.blue.shade900,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                      rows: sortedParticipants.map((participant) {
-                        // この参加者の支払い情報を取得
-                        final payment = payments.firstWhere(
-                          (p) => p.userId == participant.userId,
-                          orElse: () => PaymentModel(
-                            paymentId: '',
-                            userId: participant.userId,
-                            eventId: event.eventId,
-                            circleId: event.circleId,
-                            amount: 0,
-                            status: PaymentStatus.pending,
-                            method: PaymentMethod.paypay,
-                            createdAt: DateTime.now(),
-                            updatedAt: DateTime.now(),
-                          ),
-                        );
-
-                        return DataRow(
-                          cells: [
-                            // 名前
-                            DataCell(
-                              Center(
-                                child: FutureBuilder<String>(
-                                  future: _getUserName(ref, participant.userId),
-                                  builder: (context, snapshot) {
-                                    return Text(
-                                      snapshot.data ?? participant.userId,
-                                      style: const TextStyle(fontSize: 13),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            // 参加ステータス
-                            DataCell(
-                              Center(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: participant.status ==
-                                            ParticipationStatus.confirmed
-                                        ? Colors.green.shade100
-                                        : Colors.orange.shade100,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    participant.status ==
-                                            ParticipationStatus.confirmed
-                                        ? '参加確定'
-                                        : 'キャンセル待ち',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: participant.status ==
-                                              ParticipationStatus.confirmed
-                                          ? Colors.green.shade800
-                                          : Colors.orange.shade800,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // 支払いステータス（チェックボックス）
-                            if (event.fee != null && event.fee! > 0)
-                              DataCell(
-                                Center(
-                                  child: Checkbox(
-                                    value: payment.isPaid,
-                                    activeColor: Colors.green,
-                                    onChanged: (value) {
-                                      if (value == true) {
-                                        _markAsPaidOrCreate(
-                                          context,
-                                          ref,
-                                          payment.paymentId,
-                                          participant.userId,
-                                          event,
-                                        );
-                                      } else {
-                                        _markAsUnpaid(
-                                          context,
-                                          ref,
-                                          payment.paymentId,
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ),
-                              ),
-                            // 操作メニュー
-                            DataCell(
-                              Center(
-                                child: PopupMenuButton<ParticipationStatus>(
-                                  icon: const Icon(Icons.more_vert, size: 20),
-                                  onSelected: (status) {
-                                    _updateParticipantStatus(
-                                      context,
-                                      ref,
-                                      event.eventId,
-                                      participant.userId,
-                                      status,
-                                    );
-                                  },
-                                  itemBuilder: (BuildContext context) => [
-                                    if (participant.status != ParticipationStatus.confirmed)
-                                      const PopupMenuItem<ParticipationStatus>(
-                                        value: ParticipationStatus.confirmed,
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.check_circle, color: Colors.green, size: 18),
-                                            SizedBox(width: 8),
-                                            Text('参加確定に変更'),
-                                          ],
-                                        ),
-                                      ),
-                                    // 定員以上の場合のみキャンセル待ちに変更を表示
-                                    if (participant.status != ParticipationStatus.waitlist &&
-                                        event.confirmedCount >= event.maxParticipants)
-                                      const PopupMenuItem<ParticipationStatus>(
-                                        value: ParticipationStatus.waitlist,
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.schedule, color: Colors.orange, size: 18),
-                                            SizedBox(width: 8),
-                                            Text('キャンセル待ちに変更'),
-                                          ],
-                                        ),
-                                      ),
-                                    const PopupMenuItem<ParticipationStatus>(
-                                      value: ParticipationStatus.cancelled,
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.cancel, color: Colors.red, size: 18),
-                                          SizedBox(width: 8),
-                                          Text('キャンセル（削除）', style: TextStyle(color: Colors.red)),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stack) => Text('エラー: $error'),
-              ),
+              _buildParticipantsTable(context, ref, event),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildParticipantsTable(BuildContext context, WidgetRef ref, EventModel event) {
+    // 参加者をステータス順にソート（参加確定 → キャンセル待ち）
+    final sortedParticipants = List<EventParticipant>.from(event.participants)
+      ..sort((a, b) {
+        // 参加確定を先に、キャンセル待ちを後に
+        if (a.status == ParticipationStatus.confirmed && b.status != ParticipationStatus.confirmed) {
+          return -1;
+        } else if (a.status != ParticipationStatus.confirmed && b.status == ParticipationStatus.confirmed) {
+          return 1;
+        }
+        // 同じステータスの場合は登録日時順
+        return a.registeredAt.compareTo(b.registeredAt);
+      });
+
+    return SizedBox(
+      width: double.infinity,
+      child: DataTable(
+        headingRowHeight: 36,
+        dataRowHeight: 48,
+        columnSpacing: 16,
+        horizontalMargin: 0,
+        headingRowColor: MaterialStateProperty.all(Colors.blue.shade50),
+        columns: [
+          DataColumn(
+            label: Expanded(
+              child: Center(
+                child: Text(
+                  '名前',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.blue.shade900,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          DataColumn(
+            label: Expanded(
+              child: Center(
+                child: Text(
+                  '参加ステータス',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.blue.shade900,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          DataColumn(
+            label: Expanded(
+              child: Center(
+                child: Text(
+                  '操作',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.blue.shade900,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+        rows: sortedParticipants.map((participant) {
+          return DataRow(
+            cells: [
+              // 名前
+              DataCell(
+                Center(
+                  child: FutureBuilder<String>(
+                    future: _getUserName(ref, participant.userId),
+                    builder: (context, snapshot) {
+                      return Text(
+                        snapshot.data ?? participant.userId,
+                        style: const TextStyle(fontSize: 13),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              // 参加ステータス
+              DataCell(
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: participant.status ==
+                              ParticipationStatus.confirmed
+                          ? Colors.green.shade100
+                          : Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      participant.status ==
+                              ParticipationStatus.confirmed
+                          ? '参加確定'
+                          : 'キャンセル待ち',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: participant.status ==
+                                ParticipationStatus.confirmed
+                            ? Colors.green.shade800
+                            : Colors.orange.shade800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // 操作メニュー
+              DataCell(
+                Center(
+                  child: PopupMenuButton<ParticipationStatus>(
+                    icon: const Icon(Icons.more_vert, size: 20),
+                    onSelected: (status) {
+                      _updateParticipantStatus(
+                        context,
+                        ref,
+                        event.eventId,
+                        participant.userId,
+                        status,
+                      );
+                    },
+                    itemBuilder: (BuildContext context) => [
+                      if (participant.status != ParticipationStatus.confirmed)
+                        const PopupMenuItem<ParticipationStatus>(
+                          value: ParticipationStatus.confirmed,
+                          child: Row(
+                            children: [
+                              Icon(Icons.check_circle, color: Colors.green, size: 18),
+                              SizedBox(width: 8),
+                              Text('参加確定に変更'),
+                            ],
+                          ),
+                        ),
+                      // 定員以上の場合のみキャンセル待ちに変更を表示
+                      if (participant.status != ParticipationStatus.waitlist &&
+                          event.confirmedCount >= event.maxParticipants)
+                        const PopupMenuItem<ParticipationStatus>(
+                          value: ParticipationStatus.waitlist,
+                          child: Row(
+                            children: [
+                              Icon(Icons.schedule, color: Colors.orange, size: 18),
+                              SizedBox(width: 8),
+                              Text('キャンセル待ちに変更'),
+                            ],
+                          ),
+                        ),
+                      const PopupMenuItem<ParticipationStatus>(
+                        value: ParticipationStatus.cancelled,
+                        child: Row(
+                          children: [
+                            Icon(Icons.cancel, color: Colors.red, size: 18),
+                            SizedBox(width: 8),
+                            Text('キャンセル（削除）', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }).toList(),
       ),
     );
   }
@@ -452,99 +388,6 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
             ),
           );
         }
-      }
-    }
-  }
-
-  // 支払い済みにする（レコードがなければ作成）
-  Future<void> _markAsPaidOrCreate(
-    BuildContext context,
-    WidgetRef ref,
-    String paymentId,
-    String userId,
-    EventModel event,
-  ) async {
-    try {
-      if (paymentId.isEmpty) {
-        // 支払いレコードが存在しない場合、新規作成
-        final createPayment = ref.read(createPaymentProvider);
-        final newPaymentId = await createPayment(
-          userId: userId,
-          eventId: event.eventId,
-          circleId: event.circleId,
-          amount: event.fee ?? 0,
-          method: PaymentMethod.cash, // デフォルトは現金
-        );
-
-        // 作成したレコードを即座に支払い済みにする
-        final updateStatus = ref.read(updatePaymentStatusProvider);
-        await updateStatus(
-          paymentId: newPaymentId,
-          status: PaymentStatus.completed,
-        );
-      } else {
-        // 既存のレコードを更新
-        final updateStatus = ref.read(updatePaymentStatusProvider);
-        await updateStatus(
-          paymentId: paymentId,
-          status: PaymentStatus.completed,
-        );
-      }
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('支払い済みにしました'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('エラーが発生しました: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  // 未払いに戻す
-  Future<void> _markAsUnpaid(
-    BuildContext context,
-    WidgetRef ref,
-    String paymentId,
-  ) async {
-    try {
-      if (paymentId.isEmpty) {
-        // 支払いレコードが存在しない場合は何もしない
-        return;
-      }
-
-      final updateStatus = ref.read(updatePaymentStatusProvider);
-      await updateStatus(
-        paymentId: paymentId,
-        status: PaymentStatus.pending,
-      );
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('支払いを取り消しました'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('エラーが発生しました: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     }
   }

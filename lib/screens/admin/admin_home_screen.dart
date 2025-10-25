@@ -1422,20 +1422,6 @@ class _AdminMembersTab extends ConsumerWidget {
   }
 }
 
-// 管理者用支払いタブ
-class _AdminPaymentsTab extends StatelessWidget {
-  final String circleId;
-
-  const _AdminPaymentsTab({required this.circleId});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('支払い管理機能は準備中です'),
-    );
-  }
-}
-
 // 管理者用通知タブ
 class _AdminNotificationsTab extends StatelessWidget {
   final String circleId;
