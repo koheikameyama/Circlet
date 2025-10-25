@@ -1205,57 +1205,100 @@ class _AdminMembersTab extends ConsumerWidget {
                         ],
                       ),
                       subtitle: Text(isAdmin ? '管理者' : 'メンバー'),
-                      trailing: !isAdmin
-                          ? IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () async {
-                                final confirmed = await showDialog<bool>(
-                                  context: context,
-                                  builder: (dialogContext) => AlertDialog(
-                                    title: const Text('メンバー削除'),
-                                    content: const Text('このメンバーを削除しますか？'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.of(dialogContext).pop(false),
-                                        child: const Text('キャンセル'),
+                      trailing: PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (value) async {
+                          switch (value) {
+                            case 'change_role':
+                              final newRole = isAdmin ? 'member' : 'admin';
+                              _showRoleChangeDialog(
+                                context,
+                                ref,
+                                circleId,
+                                member.userId,
+                                newRole,
+                              );
+                              break;
+                            case 'delete':
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  title: const Text('メンバー削除'),
+                                  content: const Text('このメンバーを削除しますか？'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                                      child: const Text('キャンセル'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        foregroundColor: Colors.white,
                                       ),
-                                      ElevatedButton(
-                                        onPressed: () => Navigator.of(dialogContext).pop(true),
-                                        child: const Text('削除'),
-                                      ),
-                                    ],
-                                  ),
-                                );
+                                      child: const Text('削除'),
+                                    ),
+                                  ],
+                                ),
+                              );
 
-                                if (confirmed == true && context.mounted) {
-                                  try {
-                                    final removeMember = ref.read(removeMemberProvider);
-                                    await removeMember(
-                                      circleId: circleId,
-                                      userId: member.userId,
+                              if (confirmed == true && context.mounted) {
+                                try {
+                                  final removeMember = ref.read(removeMemberProvider);
+                                  await removeMember(
+                                    circleId: circleId,
+                                    userId: member.userId,
+                                  );
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('メンバーを削除しました'),
+                                        backgroundColor: Colors.green,
+                                      ),
                                     );
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('メンバーを削除しました'),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
-                                    }
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('削除に失敗しました: $e'),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    }
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('削除に失敗しました: $e'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
                                   }
                                 }
-                              },
-                            )
-                          : null,
+                              }
+                              break;
+                          }
+                        },
+                        itemBuilder: (BuildContext context) => [
+                          PopupMenuItem<String>(
+                            value: 'change_role',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isAdmin ? Icons.person : Icons.admin_panel_settings,
+                                  color: Colors.blue,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(isAdmin ? 'メンバーに変更' : '管理者に変更'),
+                              ],
+                            ),
+                          ),
+                          if (!isAdmin)
+                            const PopupMenuItem<String>(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red, size: 20),
+                                  SizedBox(width: 12),
+                                  Text('削除', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -1308,6 +1351,65 @@ class _AdminMembersTab extends ConsumerWidget {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    }
+  }
+
+  void _showRoleChangeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String circleId,
+    String userId,
+    String newRole,
+  ) async {
+    final userName = await _getUserName(ref, userId);
+    final roleText = newRole == 'admin' ? '管理者' : 'メンバー';
+
+    if (!context.mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('権限変更'),
+        content: Text('$userName を$roleText に変更しますか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('変更'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        final updateMemberRole = ref.read(updateMemberRoleProvider);
+        await updateMemberRole(
+          circleId: circleId,
+          userId: userId,
+          role: newRole,
+        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$userName の権限を$roleText に変更しました'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('権限変更に失敗しました: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
