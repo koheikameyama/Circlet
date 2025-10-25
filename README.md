@@ -4,60 +4,125 @@
 
 ## 主な機能
 
-### 運営側機能
-- **メンバー管理**: メンバー一覧表示、追加（LINE招待リンク・QRコード）、編集、削除、タグ付け
-- **イベント管理**: イベント作成・編集・削除、定員設定、キャンセル待ち管理（自動繰り上がり）
-- **支払い管理**: 参加費一覧、PayPay連携、未払い者へのリマインド
-- **通知管理**: 個別/全体通知送信、通知履歴確認
+### 運営側（管理者）機能
 
-### 参加者側機能
-- **イベント参加**: イベント一覧、参加登録、キャンセル、キャンセル待ち
-- **メンバー一覧**: タグ・役職確認
-- **支払い状況確認**: PayPay連携
-- **通知確認**: 運営からの連絡・イベントリマインド
-- **カレンダー連携**: 参加確定時に自動追加、キャンセル時に自動削除
+#### サークル管理
+- **サークル作成・編集**: サークル名、説明の設定
+- **招待URL生成**: メンバー招待用のURLを生成・共有
+- **メンバー管理**:
+  - メンバー一覧表示（管理者/メンバーの区別）
+  - 権限変更（管理者 ⇔ メンバー）
+  - メンバー削除
+  - 最低1人の管理者を維持する安全機能
+  - ダミーメンバー追加（テスト用）
+- **権限変更UI**:
+  - 三点リーダーメニューによる操作
+  - 管理者が1人だけの場合は権限変更を制限
+  - 確認ダイアログによる誤操作防止
+
+#### イベント管理
+- **イベント作成・編集**:
+  - イベント名、説明
+  - 日時（開始・終了）
+  - 場所（Google Places API統合）
+  - 定員設定
+  - 参加費設定
+- **イベント削除**: 関連する支払い情報も一括削除
+- **参加者管理**:
+  - 参加者一覧表示（専用ページ）
+  - 参加ステータスの手動変更
+    - 参加確定 → キャンセル待ち
+    - キャンセル待ち → 参加確定
+    - キャンセル（削除）
+  - ステータス変更の条件制御
+    - 定員に空きがある場合：「参加確定」「キャンセル」のみ
+    - 定員に空きがない場合：「参加確定」「キャンセル待ち」「キャンセル」
+  - 三点リーダーメニューからの直感的な操作
+- **キャンセル待ち管理**:
+  - 自動採番
+  - ユーザー自身がキャンセルした場合の自動繰り上げ
+  - 管理者が手動でステータス変更する場合は自動繰り上げなし
+
+#### 支払い管理
+- **参加費管理**:
+  - 各参加者の支払いステータスをチェックボックスで管理
+  - 支払い済み ⇔ 未払いの切り替え
+  - 支払いレコードの自動作成
+- **支払いサマリー**:
+  - 支払い済み人数/総人数
+  - 未払い人数
+  - 合計金額の集計
+
+### 参加者側（メンバー）機能
+
+#### サークル
+- サークル一覧表示
+- サークル情報の閲覧
+- サークルへの参加（招待URL経由）
+
+#### イベント
+- **イベント参加**:
+  - イベント一覧表示
+  - 参加登録（定員内：確定、定員超過：キャンセル待ち）
+  - 参加キャンセル
+- **イベント詳細**:
+  - 日時、場所、定員、参加費の確認
+  - 参加状況サマリー（参加確定数、キャンセル待ち数）
+  - Google Maps連携（場所を地図で表示）
+- **参加者一覧**: 専用ページで他の参加者を確認
+
+#### 支払い
+- 自分の支払いステータスの確認
 
 ## 技術スタック
 
 - **フレームワーク**: Flutter 3.19.5
 - **状態管理**: Riverpod 2.4.9
+  - StreamProvider.autoDispose による効率的なリソース管理
+  - ログアウト時の自動クリーンアップ
 - **ルーティング**: go_router 13.0.0
-- **認証**: Firebase Auth + LINE Login
+- **認証**: Firebase Auth
 - **データベース**: Cloud Firestore
-- **通知**: Firebase Cloud Messaging
-- **決済**: PayPay API (要実装)
-- **カレンダー**: device_calendar 4.3.3
+  - リアルタイムストリーム更新
+  - セキュリティルール適用
+- **地図・場所検索**: Google Places API
+- **通知**: Firebase Cloud Messaging（予定）
+- **カレンダー**: device_calendar 4.3.3（予定）
 
 ## プロジェクト構成
 
 ```
 lib/
+├── config/              # 設定ファイル
+│   └── api_keys.dart    # APIキー管理
 ├── models/              # データモデル
 │   ├── user_model.dart
 │   ├── circle_model.dart
 │   ├── event_model.dart
-│   ├── payment_model.dart
-│   └── notification_model.dart
+│   └── payment_model.dart
 ├── services/            # ビジネスロジック
 │   ├── auth_service.dart
 │   ├── circle_service.dart
 │   ├── event_service.dart
-│   ├── payment_service.dart
-│   ├── notification_service.dart
-│   └── calendar_service.dart
+│   └── payment_service.dart
 ├── providers/           # Riverpod Providers
 │   ├── auth_provider.dart
 │   ├── circle_provider.dart
-│   └── event_provider.dart
+│   ├── event_provider.dart
+│   └── payment_provider.dart
 ├── screens/             # UI画面
-│   ├── auth/
+│   ├── auth/           # 認証関連
 │   │   ├── login_screen.dart
 │   │   └── circle_selection_screen.dart
-│   ├── participant/
-│   │   └── participant_home_screen.dart
-│   └── admin/
-│       └── admin_home_screen.dart
-└── main.dart            # エントリーポイント
+│   ├── admin/          # 管理者画面
+│   │   ├── admin_home_screen.dart
+│   │   ├── admin_event_detail_screen.dart
+│   │   └── admin_event_participants_screen.dart
+│   └── participant/    # メンバー画面
+│       ├── participant_home_screen.dart
+│       ├── participant_event_detail_screen.dart
+│       └── participant_event_participants_screen.dart
+└── main.dart           # エントリーポイント
 ```
 
 ## セットアップ手順
@@ -67,7 +132,7 @@ lib/
 - Flutter SDK 3.19.5以上
 - Dart 3.3.3以上
 - Firebase プロジェクト
-- LINE Developers アカウント
+- Google Places API キー
 
 ### 2. Firebaseのセットアップ
 
@@ -78,93 +143,31 @@ lib/
    - Android: `android/app/google-services.json`
    - iOS: `ios/Runner/GoogleService-Info.plist`
 
-5. Firestoreセキュリティルールを設定:
+5. Firestoreセキュリティルールを設定（`firestore.rules`）:
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ユーザーコレクション
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // サークルコレクション
-    match /circles/{circleId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null &&
-        resource.data.adminId == request.auth.uid;
-    }
-
-    // イベントコレクション
-    match /events/{eventId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null;
-    }
-
-    // 支払いコレクション
-    match /payments/{paymentId} {
-      allow read: if request.auth != null &&
-        (resource.data.userId == request.auth.uid ||
-         get(/databases/$(database)/documents/circles/$(resource.data.circleId)).data.adminId == request.auth.uid);
-      allow create, update: if request.auth != null;
-    }
-
-    // 通知コレクション
-    match /notifications/{notificationId} {
-      allow read: if request.auth != null &&
-        request.auth.uid in resource.data.recipientUserIds;
-      allow create: if request.auth != null;
+    // 認証必須
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
 ```
 
-### 3. LINE Loginのセットアップ
+### 3. Google Places APIのセットアップ
 
-1. [LINE Developers Console](https://developers.line.biz/console/)でプロバイダーとチャネルを作成
-2. Channel IDとChannel Secretを取得
-3. iOSの設定:
-   - `ios/Runner/Info.plist`に以下を追加:
+1. [Google Cloud Console](https://console.cloud.google.com/)でプロジェクトを作成
+2. Places APIを有効化
+3. APIキーを取得
+4. `lib/config/api_keys.dart`を作成:
 
-```xml
-<key>CFBundleURLTypes</key>
-<array>
-    <dict>
-        <key>CFBundleTypeRole</key>
-        <string>Editor</string>
-        <key>CFBundleURLSchemes</key>
-        <array>
-            <string>line3rdp.$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-        </array>
-    </dict>
-</array>
-<key>LineSDKConfig</key>
-<dict>
-    <key>ChannelID</key>
-    <string>YOUR_CHANNEL_ID</string>
-</dict>
-```
-
-4. Androidの設定:
-   - `android/app/src/main/AndroidManifest.xml`に以下を追加:
-
-```xml
-<activity
-    android:name="com.linecorp.linesdk.auth.LineAuthenticationActivity"
-    android:exported="true"
-    android:launchMode="singleTask">
-    <intent-filter>
-        <action android:name="android.intent.action.VIEW" />
-        <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" />
-        <data
-            android:host="authorize"
-            android:scheme="line3rdp.YOUR_PACKAGE_NAME" />
-    </intent-filter>
-</activity>
+```dart
+class ApiKeys {
+  static const String googlePlacesApiKey = 'YOUR_API_KEY_HERE';
+}
 ```
 
 ### 4. 依存関係のインストール
@@ -186,32 +189,28 @@ flutter run -d android
 ## データ構造
 
 ### Users Collection
-```json
+
+```dart
 {
   "userId": "string",
   "name": "string",
-  "lineUserId": "string",
-  "profileImageUrl": "string?",
-  "email": "string?",
-  "circleIds": ["string"],
-  "fcmToken": "string?",
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
+  "email": "string",
+  "createdAt": "timestamp"
 }
 ```
 
 ### Circles Collection
-```json
+
+```dart
 {
   "circleId": "string",
   "name": "string",
-  "description": "string",
-  "iconUrl": "string?",
-  "adminId": "string",
+  "description": "string?",
+  "inviteToken": "string",         // 招待用トークン
   "members": [
     {
       "userId": "string",
-      "role": "string",
+      "role": "admin" | "member",   // 権限
       "tags": ["string"],
       "joinedAt": "timestamp"
     }
@@ -222,22 +221,24 @@ flutter run -d android
 ```
 
 ### Events Collection
-```json
+
+```dart
 {
   "eventId": "string",
   "circleId": "string",
   "name": "string",
   "description": "string?",
-  "datetime": "timestamp",
-  "location": "string?",
-  "maxParticipants": "number",
-  "fee": "number?",
+  "datetime": "timestamp",          // 開始日時
+  "endDatetime": "timestamp?",      // 終了日時
+  "location": "string?",            // 場所
+  "maxParticipants": "number",      // 定員
+  "fee": "number?",                 // 参加費
   "participants": [
     {
       "userId": "string",
-      "status": "confirmed|waitlist|cancelled",
-      "waitingNumber": "number?",
-      "registeredAt": "timestamp"
+      "status": "confirmed" | "waitlist" | "cancelled",
+      "waitingNumber": "number?",   // キャンセル待ち番号
+      "registeredAt": "timestamp"   // 登録日時
     }
   ],
   "createdAt": "timestamp",
@@ -245,15 +246,116 @@ flutter run -d android
 }
 ```
 
+### Payments Collection
+
+```dart
+{
+  "paymentId": "string",
+  "userId": "string",
+  "eventId": "string",
+  "circleId": "string",
+  "amount": "number",
+  "status": "pending" | "completed" | "cancelled",
+  "method": "cash" | "paypay" | "bank_transfer",
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp"
+}
+```
+
+## 状態管理のベストプラクティス
+
+### StreamProviderの自動破棄
+
+すべてのStreamProviderに`autoDispose`を適用し、画面が破棄されるとFirestoreストリームも自動的にキャンセルされます。
+
+```dart
+final currentUserProvider = StreamProvider.autoDispose<UserModel?>((ref) {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return Stream.value(null);
+
+  final authService = ref.watch(authServiceProvider);
+  return authService.getUserDataStream(userId);
+});
+```
+
+### ログアウト時の処理順
+
+Firestoreセキュリティルール（`request.auth != null`）により、ログアウト時の権限エラーを防ぐため、以下の順序で処理：
+
+1. 画面遷移を実行（StreamProviderがdisposeされる）
+2. 100ms待機（dispose完了を待つ）
+3. サインアウト実行
+
+これにより、認証が解除される前にFirestoreストリームが適切にクリーンアップされます。
+
+## UI/UXの特徴
+
+### レスポンシブデザイン
+- モバイルファーストの設計
+- カードベースの見やすいレイアウト
+- 直感的なアイコンとカラーコーディング
+
+### ナビゲーション
+- タブベースのナビゲーション（イベント、メンバー、支払い）
+- 階層的な画面遷移
+- 戻るボタンによる直感的な操作
+
+### データ表示
+- **サマリーカード**: 重要な情報を一目で確認
+- **専用ページ**: 詳細情報は別ページで表示（参加者一覧など）
+- **リアルタイム更新**: Firestoreストリームによる自動反映
+
+### 操作の安全性
+- 重要な操作には確認ダイアログ
+- ビジネスルールの自動適用
+  - 最低1人の管理者を維持
+  - 定員チェック
+  - キャンセル待ちの自動採番
+- エラーメッセージとフィードバックの明確な表示
+
+## 開発中のデバッグ機能
+
+以下のデバッグ機能が実装されています（本番環境では削除または制限を推奨）：
+
+- **ダミーメンバー追加**: サークルメンバータブから5人のテストメンバーを一括追加
+- **ダミー参加者追加**: イベント参加者一覧からサークルメンバーを参加者として追加
+- **自動イベント作成**: 管理者ホーム画面からテストイベントを自動生成
+
 ## 今後の実装予定
 
-- [ ] PayPay API連携の完全実装
-- [ ] Firebase Cloud Functions（通知送信、自動リマインダー）
-- [ ] プロフィール画像のアップロード機能
+- [ ] プッシュ通知
+  - イベントリマインダー
+  - キャンセル待ちからの繰り上げ通知
+  - 支払いリマインダー
+- [ ] PayPay API連携
+- [ ] カレンダー連携
+  - 参加確定時に自動追加
+  - キャンセル時に自動削除
+- [ ] プロフィール画像のアップロード
 - [ ] イベント画像の追加
-- [ ] 詳細な統計情報
+- [ ] 統計・レポート機能
 - [ ] エクスポート機能（CSV等）
 - [ ] 多言語対応
+
+## トラブルシューティング
+
+### ログアウト時の権限エラー
+
+**問題**: ログアウト時に `permission-denied` エラーが発生
+
+**原因**: Firestoreストリームがアクティブなまま認証が解除される
+
+**解決**:
+- すべてのStreamProviderに`autoDispose`を追加済み
+- ログアウト時の処理順を最適化済み
+
+### 参加者ステータスが更新されない
+
+**問題**: ステータスを変更しても反映されない
+
+**原因**: StreamProviderがキャッシュを保持している
+
+**解決**: `autoDispose`により画面遷移時に自動的にリフレッシュされます
 
 ## ライセンス
 

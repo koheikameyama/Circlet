@@ -1,0 +1,17 @@
+{
+  "name": "grumane",
+  "version": "1.0.0",
+  "description": "サークル管理アプリ",
+  "scripts": {
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "lib/{models,services,screens,providers}/**/*.dart": [
+      "echo '⚠️  重要なファイルが変更されました。機能追加や仕様変更がある場合は、Claude Codeで /update-readme コマンドを実行してREADMEを更新してください。'"
+    ]
+  },
+  "devDependencies": {
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0"
+  }
+}
