@@ -113,14 +113,31 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
                 ),
               )
             else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: event.participants.length,
-                separatorBuilder: (context, index) => const Divider(),
-                itemBuilder: (context, index) {
-                  final participant = event.participants[index];
-                  return _buildParticipantItem(ref, participant);
+              Builder(
+                builder: (context) {
+                  // 参加者をステータス順にソート（参加確定 → キャンセル待ち）
+                  final sortedParticipants = List<EventParticipant>.from(event.participants)
+                    ..sort((a, b) {
+                      // 参加確定を先に、キャンセル待ちを後に
+                      if (a.status == ParticipationStatus.confirmed && b.status != ParticipationStatus.confirmed) {
+                        return -1;
+                      } else if (a.status != ParticipationStatus.confirmed && b.status == ParticipationStatus.confirmed) {
+                        return 1;
+                      }
+                      // 同じステータスの場合は登録日時順
+                      return a.registeredAt.compareTo(b.registeredAt);
+                    });
+
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: sortedParticipants.length,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final participant = sortedParticipants[index];
+                      return _buildParticipantItem(ref, participant);
+                    },
+                  );
                 },
               ),
           ],

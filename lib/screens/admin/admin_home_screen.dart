@@ -967,21 +967,6 @@ class _AdminEventCard extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // イベントアイコン
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.event,
-                  color: Colors.blue,
-                  size: 30,
-                ),
-              ),
-              const SizedBox(width: 16),
               // イベント情報
               Expanded(
                 child: Column(
@@ -1028,7 +1013,9 @@ class _AdminEventCard extends ConsumerWidget {
                       ),
                     ],
                     const SizedBox(height: 4),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
                       children: [
                         // 参加状況バッジ
                         Container(
@@ -1064,7 +1051,6 @@ class _AdminEventCard extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
                         // キャンセル待ちバッジ
                         if (event.waitlistCount > 0)
                           Container(
@@ -1103,7 +1089,6 @@ class _AdminEventCard extends ConsumerWidget {
                               horizontal: 8,
                               vertical: 4,
                             ),
-                            margin: const EdgeInsets.only(left: 8),
                             decoration: BoxDecoration(
                               color: Colors.green.shade100,
                               borderRadius: BorderRadius.circular(12),

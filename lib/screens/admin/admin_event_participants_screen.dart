@@ -135,7 +135,20 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
             else
               paymentsAsync.when(
                 data: (payments) {
-                  return SizedBox(
+                  // 参加者をステータス順にソート（参加確定 → キャンセル待ち）
+                final sortedParticipants = List<EventParticipant>.from(event.participants)
+                  ..sort((a, b) {
+                    // 参加確定を先に、キャンセル待ちを後に
+                    if (a.status == ParticipationStatus.confirmed && b.status != ParticipationStatus.confirmed) {
+                      return -1;
+                    } else if (a.status != ParticipationStatus.confirmed && b.status == ParticipationStatus.confirmed) {
+                      return 1;
+                    }
+                    // 同じステータスの場合は登録日時順
+                    return a.registeredAt.compareTo(b.registeredAt);
+                  });
+
+                return SizedBox(
                     width: double.infinity,
                     child: DataTable(
                       headingRowHeight: 36,
@@ -202,7 +215,7 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                           ),
                         ),
                       ],
-                      rows: event.participants.map((participant) {
+                      rows: sortedParticipants.map((participant) {
                         // この参加者の支払い情報を取得
                         final payment = payments.firstWhere(
                           (p) => p.userId == participant.userId,
