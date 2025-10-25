@@ -28,10 +28,15 @@ class _ParticipantHomeScreenState
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authStateProvider).value;
+    final circleAsync = ref.watch(circleProvider(widget.circleId));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('テニスサークル'),
+        title: circleAsync.when(
+          data: (circle) => Text(circle?.name ?? 'サークル'),
+          loading: () => const Text('読み込み中...'),
+          error: (_, __) => const Text('サークル'),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/circles'),

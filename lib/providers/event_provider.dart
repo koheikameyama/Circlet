@@ -6,19 +6,19 @@ import '../services/event_service.dart';
 final eventServiceProvider = Provider<EventService>((ref) => EventService());
 
 // イベント情報のProvider
-final eventProvider = StreamProvider.family<EventModel?, String>((ref, eventId) {
+final eventProvider = StreamProvider.autoDispose.family<EventModel?, String>((ref, eventId) {
   final eventService = ref.watch(eventServiceProvider);
   return eventService.getEventStream(eventId);
 });
 
 // サークルのイベント一覧のProvider
-final circleEventsProvider = StreamProvider.family<List<EventModel>, String>((ref, circleId) {
+final circleEventsProvider = StreamProvider.autoDispose.family<List<EventModel>, String>((ref, circleId) {
   final eventService = ref.watch(eventServiceProvider);
   return eventService.getCircleEvents(circleId);
 });
 
 // ユーザーが参加するイベント一覧のProvider
-final userEventsProvider = StreamProvider.family<List<EventModel>, String>((ref, userId) {
+final userEventsProvider = StreamProvider.autoDispose.family<List<EventModel>, String>((ref, userId) {
   final eventService = ref.watch(eventServiceProvider);
   return eventService.getUserEvents(userId);
 });

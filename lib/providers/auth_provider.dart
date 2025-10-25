@@ -19,7 +19,7 @@ final currentUserIdProvider = Provider<String?>((ref) {
 });
 
 // 現在のユーザー情報のProvider
-final currentUserProvider = StreamProvider<UserModel?>((ref) {
+final currentUserProvider = StreamProvider.autoDispose<UserModel?>((ref) {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) {
     return Stream.value(null);
@@ -44,7 +44,7 @@ final signOutProvider = Provider<Future<void> Function()>((ref) {
 });
 
 // 特定のユーザー情報を取得するProvider
-final userDataProvider = StreamProvider.family<UserModel?, String>((ref, userId) {
+final userDataProvider = StreamProvider.autoDispose.family<UserModel?, String>((ref, userId) {
   final authService = ref.watch(authServiceProvider);
   return authService.getUserDataStream(userId);
 });

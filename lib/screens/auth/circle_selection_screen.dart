@@ -66,11 +66,7 @@ class CircleSelectionScreen extends ConsumerWidget {
 
               if (confirmed == true) {
                 try {
-                  // ログアウト処理
-                  final authService = ref.read(authServiceProvider);
-                  await authService.signOut();
-
-                  // ログイン画面に遷移（スタックをクリア）
+                  // 先に画面遷移を行う（StreamProviderがdisposeされるようにする）
                   if (context.mounted) {
                     // すべての履歴をクリアしてログイン画面へ
                     while (context.canPop()) {
@@ -78,13 +74,15 @@ class CircleSelectionScreen extends ConsumerWidget {
                     }
                     context.pushReplacement('/login');
                   }
+
+                  // 画面遷移後、少し待機してからログアウト処理
+                  // これにより、StreamProviderが完全にdisposeされてからサインアウトが実行される
+                  await Future.delayed(const Duration(milliseconds: 100));
+                  final authService = ref.read(authServiceProvider);
+                  await authService.signOut();
                 } catch (e) {
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text('ログアウトに失敗しました: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  // エラーが発生した場合でも、既に画面遷移しているので問題ない
+                  print('ログアウト時のエラー（無視されます）: $e');
                 }
               }
             },

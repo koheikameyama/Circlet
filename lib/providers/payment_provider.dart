@@ -6,19 +6,19 @@ import '../services/payment_service.dart';
 final paymentServiceProvider = Provider<PaymentService>((ref) => PaymentService());
 
 // イベントの支払い一覧のProvider
-final eventPaymentsProvider = StreamProvider.family<List<PaymentModel>, String>((ref, eventId) {
+final eventPaymentsProvider = StreamProvider.autoDispose.family<List<PaymentModel>, String>((ref, eventId) {
   final paymentService = ref.watch(paymentServiceProvider);
   return paymentService.getEventPayments(eventId);
 });
 
 // ユーザーの支払い一覧のProvider
-final userPaymentsProvider = StreamProvider.family<List<PaymentModel>, String>((ref, userId) {
+final userPaymentsProvider = StreamProvider.autoDispose.family<List<PaymentModel>, String>((ref, userId) {
   final paymentService = ref.watch(paymentServiceProvider);
   return paymentService.getUserPayments(userId);
 });
 
 // サークルの支払い一覧のProvider
-final circlePaymentsProvider = StreamProvider.family<List<PaymentModel>, String>((ref, circleId) {
+final circlePaymentsProvider = StreamProvider.autoDispose.family<List<PaymentModel>, String>((ref, circleId) {
   final paymentService = ref.watch(paymentServiceProvider);
   return paymentService.getCirclePayments(circleId);
 });

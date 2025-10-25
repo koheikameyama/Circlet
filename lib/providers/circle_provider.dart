@@ -9,13 +9,13 @@ final circleServiceProvider = Provider<CircleService>((ref) => CircleService());
 final selectedCircleIdProvider = StateProvider<String?>((ref) => null);
 
 // サークル情報のProvider
-final circleProvider = StreamProvider.family<CircleModel?, String>((ref, circleId) {
+final circleProvider = StreamProvider.autoDispose.family<CircleModel?, String>((ref, circleId) {
   final circleService = ref.watch(circleServiceProvider);
   return circleService.getCircleStream(circleId);
 });
 
 // 選択中のサークル情報のProvider
-final selectedCircleProvider = StreamProvider<CircleModel?>((ref) {
+final selectedCircleProvider = StreamProvider.autoDispose<CircleModel?>((ref) {
   final circleId = ref.watch(selectedCircleIdProvider);
   if (circleId == null) {
     return Stream.value(null);
@@ -26,7 +26,7 @@ final selectedCircleProvider = StreamProvider<CircleModel?>((ref) {
 });
 
 // ユーザーが所属するサークル一覧のProvider
-final userCirclesProvider = StreamProvider.family<List<CircleModel>, String>((ref, userId) {
+final userCirclesProvider = StreamProvider.autoDispose.family<List<CircleModel>, String>((ref, userId) {
   final circleService = ref.watch(circleServiceProvider);
   return circleService.getUserCircles(userId);
 });
