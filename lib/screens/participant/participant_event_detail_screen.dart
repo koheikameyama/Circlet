@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../providers/circle_provider.dart';
+import 'participant_event_participants_screen.dart';
 
 class ParticipantEventDetailScreen extends ConsumerWidget {
   final String circleId;
@@ -363,202 +364,109 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
   Widget _buildParticipantList(BuildContext context, WidgetRef ref, EventModel event) {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '参加者一覧 (${event.participants.length}人)',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    '参加者',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '${event.participants.length}人',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                ],
               ),
-              // デバッグ用：ダミー参加者追加ボタン
-              TextButton.icon(
-                onPressed: () => _addDummyParticipant(context, ref, event),
-                icon: const Icon(Icons.person_add, size: 16),
-                label: const Text('ダミー追加', style: TextStyle(fontSize: 12)),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.blue,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildParticipantSummary(
+                      '参加確定',
+                      '${event.confirmedCount}人',
+                      Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildParticipantSummary(
+                      'キャンセル待ち',
+                      '${event.waitlistCount}人',
+                      Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => ParticipantEventParticipantsScreen(
+                          circleId: circleId,
+                          eventId: eventId,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.people),
+                  label: const Text('参加者一覧を見る'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          if (event.participants.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Text('まだ参加者がいません'),
-              ),
-            )
-          else
-            SizedBox(
-              width: double.infinity,
-              child: DataTable(
-                headingRowHeight: 36,
-                dataRowHeight: 48,
-                columnSpacing: 16,
-                horizontalMargin: 0,
-                headingRowColor: MaterialStateProperty.all(Colors.blue.shade50),
-                columns: [
-                  DataColumn(
-                    label: Expanded(
-                      child: Center(
-                        child: Text(
-                          '名前',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: Colors.blue.shade900,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Expanded(
-                      child: Center(
-                        child: Text(
-                          '参加ステータス',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: Colors.blue.shade900,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (event.fee != null && event.fee! > 0)
-                    DataColumn(
-                      label: Expanded(
-                        child: Center(
-                          child: Text(
-                            '支払いステータス',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: Colors.blue.shade900,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-                rows: event.participants.map((participant) {
-                  return DataRow(
-                    cells: [
-                      // 名前
-                      DataCell(
-                        Center(
-                          child: FutureBuilder<String>(
-                            future: _getUserName(ref, participant.userId),
-                            builder: (context, snapshot) {
-                              return Text(
-                                snapshot.data ?? participant.userId,
-                                style: const TextStyle(fontSize: 13),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      // 参加ステータス
-                      DataCell(
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: participant.status ==
-                                      ParticipationStatus.confirmed
-                                  ? Colors.green.shade100
-                                  : Colors.orange.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              participant.status ==
-                                      ParticipationStatus.confirmed
-                                  ? '参加確定'
-                                  : 'キャンセル待ち',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: participant.status ==
-                                        ParticipationStatus.confirmed
-                                    ? Colors.green.shade800
-                                    : Colors.orange.shade800,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // 支払いステータス（表示のみ）
-                      if (event.fee != null && event.fee! > 0)
-                        DataCell(
-                          Center(
-                            child: FutureBuilder(
-                              future: _getPaymentStatus(ref, event.eventId, participant.userId),
-                              builder: (context, snapshot) {
-                                final isPaid = snapshot.data ?? false;
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: isPaid ? Colors.green : Colors.orange,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    isPaid ? '済' : '未',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
 
-  // 支払いステータスを取得
-  Future<bool> _getPaymentStatus(WidgetRef ref, String eventId, String userId) async {
-    try {
-      final paymentsAsync = ref.read(eventPaymentsProvider(eventId).future);
-      final payments = await paymentsAsync;
-      final payment = payments.firstWhere(
-        (p) => p.userId == userId,
-        orElse: () => PaymentModel(
-          paymentId: '',
-          userId: userId,
-          eventId: eventId,
-          circleId: circleId,
-          amount: 0,
-          status: PaymentStatus.pending,
-          method: PaymentMethod.paypay,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-      );
-      return payment.isPaid;
-    } catch (e) {
-      return false;
-    }
+  Widget _buildParticipantSummary(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatEventDateTime(DateTime startDateTime, DateTime? endDateTime) {
@@ -655,93 +563,6 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('キャンセルに失敗しました: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  // デバッグ用：ダミー参加者を追加
-  Future<void> _addDummyParticipant(
-    BuildContext context,
-    WidgetRef ref,
-    EventModel event,
-  ) async {
-    try {
-      // サークル情報を取得
-      final circleService = ref.read(circleServiceProvider);
-      final circle = await circleService.getCircle(event.circleId);
-
-      if (circle == null) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('サークル情報が取得できませんでした'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      // すでに参加しているメンバーのIDリストを取得
-      final participantUserIds = event.participants.map((p) => p.userId).toSet();
-
-      // まだ参加していないメンバーをフィルタリング
-      final availableMembers = circle.members
-          .where((m) => !participantUserIds.contains(m.userId))
-          .toList();
-
-      String userId;
-      String userName;
-
-      if (availableMembers.isEmpty) {
-        // 利用可能なメンバーがいない場合、新しくダミーメンバーを作成
-        final now = DateTime.now();
-        userId = 'dummy_${now.millisecondsSinceEpoch}';
-        userName = 'ダミーメンバー${circle.members.length + 1}';
-
-        // Firestoreにダミーユーザーを作成
-        await ref.read(authServiceProvider).createDummyUser(
-          userId: userId,
-          name: userName,
-        );
-
-        // サークルにメンバーとして追加
-        await circleService.addMember(
-          circleId: event.circleId,
-          userId: userId,
-          role: 'member',
-        );
-      } else {
-        // 既存のメンバーから選択
-        final selectedMember = availableMembers[0];
-        userId = selectedMember.userId;
-        userName = await _getUserName(ref, userId);
-      }
-
-      // イベントに参加
-      final joinEvent = ref.read(joinEventProvider);
-      await joinEvent(
-        eventId: event.eventId,
-        userId: userId,
-      );
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$userNameを追加しました'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 1),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('エラーが発生しました: $e'),
             backgroundColor: Colors.red,
           ),
         );

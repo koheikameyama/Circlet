@@ -12,6 +12,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../providers/circle_provider.dart';
 import '../../config/api_keys.dart';
+import 'admin_event_participants_screen.dart';
 
 class AdminEventDetailScreen extends ConsumerWidget {
   final String circleId;
@@ -892,13 +893,11 @@ class AdminEventDetailScreen extends ConsumerWidget {
     );
   }
 
-  // 参加者一覧セクション
+  // 参加者一覧セクション（簡略版）
   Widget _buildParticipantsSection(BuildContext context, WidgetRef ref, EventModel event) {
-    final paymentsAsync = ref.watch(eventPaymentsProvider(event.eventId));
-
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -906,375 +905,98 @@ class AdminEventDetailScreen extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  '参加者一覧',
+                  '参加者',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                // デバッグ用：ダミー参加者追加ボタン
-                TextButton.icon(
-                  onPressed: () => _addDummyParticipant(context, ref, event),
-                  icon: const Icon(Icons.person_add, size: 16),
-                  label: const Text('ダミー追加', style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                Text(
+                  '${event.participants.length}人',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade700,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            if (event.participants.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(
-                  child: Text(
-                    '参加者がいません',
-                    style: TextStyle(color: Colors.grey),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildParticipantSummary(
+                    '参加確定',
+                    '${event.confirmedCount}人',
+                    Colors.green,
                   ),
                 ),
-              )
-            else
-              paymentsAsync.when(
-                data: (payments) {
-                  return SizedBox(
-                    width: double.infinity,
-                    child: DataTable(
-                      headingRowHeight: 36,
-                      dataRowHeight: 48,
-                      columnSpacing: 16,
-                      horizontalMargin: 0,
-                      headingRowColor: MaterialStateProperty.all(Colors.blue.shade50),
-                    columns: [
-                      DataColumn(
-                        label: Expanded(
-                          child: Center(
-                            child: Text(
-                              '名前',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: Colors.blue.shade900,
-                              ),
-                            ),
-                          ),
-                        ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildParticipantSummary(
+                    'キャンセル待ち',
+                    '${event.waitlistCount}人',
+                    Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => AdminEventParticipantsScreen(
+                        circleId: circleId,
+                        eventId: eventId,
                       ),
-                        DataColumn(
-                          label: Expanded(
-                            child: Center(
-                              child: Text(
-                                '参加ステータス',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: Colors.blue.shade900,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (event.fee != null && event.fee! > 0)
-                          DataColumn(
-                            label: Expanded(
-                              child: Center(
-                                child: Text(
-                                  '支払い済み',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    color: Colors.blue.shade900,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                      rows: event.participants.map((participant) {
-                        // この参加者の支払い情報を取得
-                        final payment = payments.firstWhere(
-                          (p) => p.userId == participant.userId,
-                          orElse: () => PaymentModel(
-                            paymentId: '',
-                            userId: participant.userId,
-                            eventId: event.eventId,
-                            circleId: event.circleId,
-                            amount: 0,
-                            status: PaymentStatus.pending,
-                            method: PaymentMethod.paypay,
-                            createdAt: DateTime.now(),
-                            updatedAt: DateTime.now(),
-                          ),
-                        );
-
-                        return DataRow(
-                          cells: [
-                            // 名前
-                            DataCell(
-                              Center(
-                                child: FutureBuilder<String>(
-                                  future: _getUserName(ref, participant.userId),
-                                  builder: (context, snapshot) {
-                                    return Text(
-                                      snapshot.data ?? participant.userId,
-                                      style: const TextStyle(fontSize: 13),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            // 参加ステータス
-                            DataCell(
-                              Center(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: participant.status ==
-                                            ParticipationStatus.confirmed
-                                        ? Colors.green.shade100
-                                        : Colors.orange.shade100,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    participant.status ==
-                                            ParticipationStatus.confirmed
-                                        ? '参加確定'
-                                        : 'キャンセル待ち',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: participant.status ==
-                                              ParticipationStatus.confirmed
-                                          ? Colors.green.shade800
-                                          : Colors.orange.shade800,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // 支払いステータス（チェックボックス）
-                            if (event.fee != null && event.fee! > 0)
-                              DataCell(
-                                Center(
-                                  child: Checkbox(
-                                    value: payment.isPaid,
-                                    activeColor: Colors.green,
-                                    onChanged: (value) {
-                                      if (value == true) {
-                                        _markAsPaidOrCreate(
-                                          context,
-                                          ref,
-                                          payment.paymentId,
-                                          participant.userId,
-                                          event,
-                                        );
-                                      } else {
-                                        _markAsUnpaid(
-                                          context,
-                                          ref,
-                                          payment.paymentId,
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ),
-                              ),
-                          ],
-                        );
-                      }).toList(),
                     ),
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stack) => Text('エラー: $error'),
+                icon: const Icon(Icons.people),
+                label: const Text('参加者一覧を見る'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
               ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // 支払い済みにする（レコードがなければ作成）
-  Future<void> _markAsPaidOrCreate(
-    BuildContext context,
-    WidgetRef ref,
-    String paymentId,
-    String userId,
-    EventModel event,
-  ) async {
-    try {
-      if (paymentId.isEmpty) {
-        // 支払いレコードが存在しない場合、新規作成
-        final createPayment = ref.read(createPaymentProvider);
-        final newPaymentId = await createPayment(
-          userId: userId,
-          eventId: event.eventId,
-          circleId: event.circleId,
-          amount: event.fee ?? 0,
-          method: PaymentMethod.cash, // デフォルトは現金
-        );
-
-        // 作成したレコードを即座に支払い済みにする
-        final updateStatus = ref.read(updatePaymentStatusProvider);
-        await updateStatus(
-          paymentId: newPaymentId,
-          status: PaymentStatus.completed,
-        );
-      } else {
-        // 既存のレコードを更新
-        final updateStatus = ref.read(updatePaymentStatusProvider);
-        await updateStatus(
-          paymentId: paymentId,
-          status: PaymentStatus.completed,
-        );
-      }
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('支払い済みにしました'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('エラーが発生しました: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  // 未払いに戻す
-  Future<void> _markAsUnpaid(
-    BuildContext context,
-    WidgetRef ref,
-    String paymentId,
-  ) async {
-    try {
-      if (paymentId.isEmpty) {
-        // 支払いレコードが存在しない場合は何もしない
-        return;
-      }
-
-      final updateStatus = ref.read(updatePaymentStatusProvider);
-      await updateStatus(
-        paymentId: paymentId,
-        status: PaymentStatus.pending,
-      );
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('支払いを取り消しました'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('エラーが発生しました: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  // デバッグ用：ダミー参加者を追加
-  Future<void> _addDummyParticipant(
-    BuildContext context,
-    WidgetRef ref,
-    EventModel event,
-  ) async {
-    try {
-      // サークル情報を取得
-      final circleService = ref.read(circleServiceProvider);
-      final circle = await circleService.getCircle(event.circleId);
-
-      if (circle == null) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('サークル情報が取得できませんでした'),
-              backgroundColor: Colors.red,
+  Widget _buildParticipantSummary(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[700],
             ),
-          );
-        }
-        return;
-      }
-
-      // すでに参加しているメンバーのIDリストを取得
-      final participantUserIds = event.participants.map((p) => p.userId).toSet();
-
-      // まだ参加していないメンバーをフィルタリング
-      final availableMembers = circle.members
-          .where((m) => !participantUserIds.contains(m.userId))
-          .toList();
-
-      String userId;
-      String userName;
-
-      if (availableMembers.isEmpty) {
-        // 利用可能なメンバーがいない場合、新しくダミーメンバーを作成
-        final now = DateTime.now();
-        userId = 'dummy_${now.millisecondsSinceEpoch}';
-        userName = 'ダミーメンバー${circle.members.length + 1}';
-
-        // Firestoreにダミーユーザーを作成
-        await ref.read(authServiceProvider).createDummyUser(
-          userId: userId,
-          name: userName,
-        );
-
-        // サークルにメンバーとして追加
-        await circleService.addMember(
-          circleId: event.circleId,
-          userId: userId,
-          role: 'member',
-        );
-      } else {
-        // 既存のメンバーから選択
-        final selectedMember = availableMembers[0];
-        userId = selectedMember.userId;
-        userName = await _getUserName(ref, userId);
-      }
-
-      // イベントに参加
-      final joinEvent = ref.read(joinEventProvider);
-      await joinEvent(
-        eventId: event.eventId,
-        userId: userId,
-      );
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$userNameを追加しました'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 1),
           ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('エラーが発生しました: $e'),
-            backgroundColor: Colors.red,
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-        );
-      }
-    }
+        ],
+      ),
+    );
   }
+
 }
