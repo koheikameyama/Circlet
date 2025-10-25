@@ -264,8 +264,7 @@ class EventService {
           'updatedAt': Timestamp.now(),
         });
 
-        // キャンセル待ちから繰り上げ（他の人を確定に）
-        await _promoteFromWaitlist(eventId, event);
+        // 繰り上げ処理は不要（確定枠が1つ空くが、管理者が手動で調整する）
       }
       // キャンセル待ち→確定の場合
       else if (oldStatus == ParticipationStatus.waitlist &&
