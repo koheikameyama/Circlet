@@ -1177,6 +1177,11 @@ class _AdminMembersTab extends ConsumerWidget {
                   final isAdmin = member.role == 'admin';
                   final isDummy = member.userId.startsWith('dummy_');
 
+                  // 管理者の数をカウント
+                  final adminCount = circle.members.where((m) => m.role == 'admin').length;
+                  // 管理者が1人だけで、かつこのメンバーが管理者の場合は権限変更を禁止
+                  final canChangeRole = !(isAdmin && adminCount <= 1);
+
                   return Card(
                     child: ListTile(
                       leading: CircleAvatar(
@@ -1272,20 +1277,37 @@ class _AdminMembersTab extends ConsumerWidget {
                           }
                         },
                         itemBuilder: (BuildContext context) => [
-                          PopupMenuItem<String>(
-                            value: 'change_role',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isAdmin ? Icons.person : Icons.admin_panel_settings,
-                                  color: Colors.blue,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(isAdmin ? 'メンバーに変更' : '管理者に変更'),
-                              ],
+                          if (canChangeRole)
+                            PopupMenuItem<String>(
+                              value: 'change_role',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isAdmin ? Icons.person : Icons.admin_panel_settings,
+                                    color: Colors.blue,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(isAdmin ? 'メンバーに変更' : '管理者に変更'),
+                                ],
+                              ),
                             ),
-                          ),
+                          if (!canChangeRole && isAdmin)
+                            const PopupMenuItem<String>(
+                              enabled: false,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline, color: Colors.grey, size: 20),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      '少なくとも1人の管理者が必要です',
+                                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           if (!isAdmin)
                             const PopupMenuItem<String>(
                               value: 'delete',
