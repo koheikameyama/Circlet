@@ -187,6 +187,20 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
+                        DataColumn(
+                          label: Expanded(
+                            child: Center(
+                              child: Text(
+                                '操作',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Colors.blue.shade900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                       rows: event.participants.map((participant) {
                         // この参加者の支払い情報を取得
@@ -280,6 +294,59 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                                   ),
                                 ),
                               ),
+                            // 操作メニュー
+                            DataCell(
+                              Center(
+                                child: PopupMenuButton<ParticipationStatus>(
+                                  icon: const Icon(Icons.more_vert, size: 20),
+                                  onSelected: (status) {
+                                    _updateParticipantStatus(
+                                      context,
+                                      ref,
+                                      event.eventId,
+                                      participant.userId,
+                                      status,
+                                    );
+                                  },
+                                  itemBuilder: (BuildContext context) => [
+                                    if (participant.status != ParticipationStatus.confirmed)
+                                      const PopupMenuItem<ParticipationStatus>(
+                                        value: ParticipationStatus.confirmed,
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.check_circle, color: Colors.green, size: 18),
+                                            SizedBox(width: 8),
+                                            Text('参加確定に変更'),
+                                          ],
+                                        ),
+                                      ),
+                                    // 定員以上の場合のみキャンセル待ちに変更を表示
+                                    if (participant.status != ParticipationStatus.waitlist &&
+                                        event.confirmedCount >= event.maxParticipants)
+                                      const PopupMenuItem<ParticipationStatus>(
+                                        value: ParticipationStatus.waitlist,
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.schedule, color: Colors.orange, size: 18),
+                                            SizedBox(width: 8),
+                                            Text('キャンセル待ちに変更'),
+                                          ],
+                                        ),
+                                      ),
+                                    const PopupMenuItem<ParticipationStatus>(
+                                      value: ParticipationStatus.cancelled,
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.cancel, color: Colors.red, size: 18),
+                                          SizedBox(width: 8),
+                                          Text('キャンセル（削除）', style: TextStyle(color: Colors.red)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         );
                       }).toList(),
@@ -302,6 +369,77 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
       return user?.name ?? userId;
     } catch (e) {
       return userId;
+    }
+  }
+
+  // 参加者のステータスを更新
+  Future<void> _updateParticipantStatus(
+    BuildContext context,
+    WidgetRef ref,
+    String eventId,
+    String userId,
+    ParticipationStatus newStatus,
+  ) async {
+    final userName = await _getUserName(ref, userId);
+    final statusText = newStatus == ParticipationStatus.confirmed
+        ? '参加確定'
+        : newStatus == ParticipationStatus.waitlist
+            ? 'キャンセル待ち'
+            : 'キャンセル';
+
+    if (!context.mounted) return;
+
+    // 確認ダイアログを表示
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('ステータス変更'),
+        content: Text('$userName を$statusText に変更しますか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: newStatus == ParticipationStatus.cancelled
+                  ? Colors.red
+                  : Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('変更'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        final updateStatus = ref.read(updateParticipantStatusProvider);
+        await updateStatus(
+          eventId: eventId,
+          userId: userId,
+          newStatus: newStatus,
+        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$userName のステータスを$statusText に変更しました'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('ステータス変更に失敗しました: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 

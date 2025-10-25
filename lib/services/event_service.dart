@@ -212,6 +212,97 @@ class EventService {
     // TODO: 繰り上げ通知を送信
   }
 
+  // 参加者のステータスを更新（管理者用）
+  Future<void> updateParticipantStatus({
+    required String eventId,
+    required String userId,
+    required ParticipationStatus newStatus,
+  }) async {
+    try {
+      final event = await getEvent(eventId);
+      if (event == null) {
+        throw Exception('Event not found');
+      }
+
+      final participant = event.participants.firstWhere(
+        (p) => p.userId == userId,
+        orElse: () => throw Exception('Participant not found'),
+      );
+
+      final oldStatus = participant.status;
+
+      // 同じステータスの場合は何もしない
+      if (oldStatus == newStatus) return;
+
+      // キャンセルの場合は、参加者リストから削除
+      if (newStatus == ParticipationStatus.cancelled) {
+        await cancelEvent(eventId: eventId, userId: userId);
+        return;
+      }
+
+      // 確定→キャンセル待ちの場合
+      if (oldStatus == ParticipationStatus.confirmed &&
+          newStatus == ParticipationStatus.waitlist) {
+        // 次のキャンセル待ち番号を取得
+        final maxWaitingNumber = event.participants
+            .where((p) => p.status == ParticipationStatus.waitlist)
+            .map((p) => p.waitingNumber ?? 0)
+            .fold(0, (max, num) => num > max ? num : max);
+
+        final updatedParticipants = event.participants.map((p) {
+          if (p.userId == userId) {
+            return p.copyWith(
+              status: ParticipationStatus.waitlist,
+              waitingNumber: maxWaitingNumber + 1,
+            );
+          }
+          return p;
+        }).map((p) => p.toMap()).toList();
+
+        await _firestore.collection('events').doc(eventId).update({
+          'participants': updatedParticipants,
+          'updatedAt': Timestamp.now(),
+        });
+
+        // キャンセル待ちから繰り上げ（他の人を確定に）
+        await _promoteFromWaitlist(eventId, event);
+      }
+      // キャンセル待ち→確定の場合
+      else if (oldStatus == ParticipationStatus.waitlist &&
+          newStatus == ParticipationStatus.confirmed) {
+        // 定員チェック
+        if (event.confirmedCount >= event.maxParticipants) {
+          throw Exception('定員に達しているため、確定にできません');
+        }
+
+        final updatedParticipants = event.participants.map((p) {
+          if (p.userId == userId) {
+            return p.copyWith(
+              status: ParticipationStatus.confirmed,
+              waitingNumber: null,
+            );
+          }
+          // 他のキャンセル待ち参加者の番号を繰り下げ
+          if (p.status == ParticipationStatus.waitlist &&
+              p.waitingNumber != null &&
+              participant.waitingNumber != null &&
+              p.waitingNumber! > participant.waitingNumber!) {
+            return p.copyWith(waitingNumber: p.waitingNumber! - 1);
+          }
+          return p;
+        }).map((p) => p.toMap()).toList();
+
+        await _firestore.collection('events').doc(eventId).update({
+          'participants': updatedParticipants,
+          'updatedAt': Timestamp.now(),
+        });
+      }
+    } catch (e) {
+      print('Error updating participant status: $e');
+      rethrow;
+    }
+  }
+
   // イベントを削除
   Future<void> deleteEvent(String eventId) async {
     try {

@@ -127,6 +127,26 @@ final cancelEventProvider = Provider<Future<void> Function({
   };
 });
 
+// 参加者のステータスを更新するProvider（管理者用）
+final updateParticipantStatusProvider = Provider<Future<void> Function({
+  required String eventId,
+  required String userId,
+  required ParticipationStatus newStatus,
+})>((ref) {
+  return ({
+    required String eventId,
+    required String userId,
+    required ParticipationStatus newStatus,
+  }) async {
+    final eventService = ref.read(eventServiceProvider);
+    await eventService.updateParticipantStatus(
+      eventId: eventId,
+      userId: userId,
+      newStatus: newStatus,
+    );
+  };
+});
+
 // イベント削除のProvider
 final deleteEventProvider = Provider<Future<void> Function(String eventId)>((ref) {
   return (String eventId) async {
