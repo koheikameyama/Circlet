@@ -282,18 +282,18 @@ class AdminEventDetailScreen extends ConsumerWidget {
                   ),
                 ],
 
+                // 参加者一覧と支払い状況
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _buildParticipantsSection(context, ref, event),
+                ),
+
                 // 支払い管理（参加費がある場合のみ表示）
                 if (event.fee != null && event.fee! > 0)
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: _buildPaymentManagementSection(context, ref, event),
                   ),
-
-                // 参加者一覧と支払い状況
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: _buildParticipantsSection(context, ref, event),
-                ),
 
                 const SizedBox(height: 16),
               ],
@@ -767,18 +767,12 @@ class AdminEventDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.payment, color: Colors.green),
-                const SizedBox(width: 8),
-                const Text(
-                  '支払い管理',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            const Text(
+              '支払い管理',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
             paymentsAsync.when(
