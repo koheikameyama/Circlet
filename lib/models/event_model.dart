@@ -63,6 +63,7 @@ class EventModel {
   final DateTime datetime;
   final DateTime? endDatetime;
   final DateTime? publishDatetime; // 公開日時
+  final DateTime? cancellationDeadline; // キャンセル期限
   final String? location;
   final int maxParticipants;
   final int? fee;
@@ -78,6 +79,7 @@ class EventModel {
     required this.datetime,
     this.endDatetime,
     this.publishDatetime,
+    this.cancellationDeadline,
     this.location,
     required this.maxParticipants,
     this.fee,
@@ -100,6 +102,9 @@ class EventModel {
       publishDatetime: data['publishDatetime'] != null
           ? (data['publishDatetime'] as Timestamp).toDate()
           : null,
+      cancellationDeadline: data['cancellationDeadline'] != null
+          ? (data['cancellationDeadline'] as Timestamp).toDate()
+          : null,
       location: data['location'],
       maxParticipants: data['maxParticipants'] ?? 0,
       fee: data['fee'],
@@ -120,6 +125,7 @@ class EventModel {
       'datetime': Timestamp.fromDate(datetime),
       'endDatetime': endDatetime != null ? Timestamp.fromDate(endDatetime!) : null,
       'publishDatetime': publishDatetime != null ? Timestamp.fromDate(publishDatetime!) : null,
+      'cancellationDeadline': cancellationDeadline != null ? Timestamp.fromDate(cancellationDeadline!) : null,
       'location': location,
       'maxParticipants': maxParticipants,
       'fee': fee,
@@ -137,6 +143,7 @@ class EventModel {
     DateTime? datetime,
     DateTime? endDatetime,
     DateTime? publishDatetime,
+    DateTime? cancellationDeadline,
     String? location,
     int? maxParticipants,
     int? fee,
@@ -152,6 +159,7 @@ class EventModel {
       datetime: datetime ?? this.datetime,
       endDatetime: endDatetime ?? this.endDatetime,
       publishDatetime: publishDatetime ?? this.publishDatetime,
+      cancellationDeadline: cancellationDeadline ?? this.cancellationDeadline,
       location: location ?? this.location,
       maxParticipants: maxParticipants ?? this.maxParticipants,
       fee: fee ?? this.fee,
@@ -173,6 +181,12 @@ class EventModel {
   bool get isPublished {
     if (publishDatetime == null) return true;
     return DateTime.now().isAfter(publishDatetime!);
+  }
+
+  // キャンセル可能かチェック（キャンセル期限がnullまたは現在時刻より前）
+  bool get canCancel {
+    if (cancellationDeadline == null) return true;
+    return DateTime.now().isBefore(cancellationDeadline!);
   }
 
   bool isUserParticipating(String userId) =>

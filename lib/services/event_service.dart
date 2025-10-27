@@ -14,6 +14,7 @@ class EventService {
     required DateTime datetime,
     DateTime? endDatetime,
     DateTime? publishDatetime,
+    DateTime? cancellationDeadline,
     String? location,
     required int maxParticipants,
     int? fee,
@@ -28,6 +29,7 @@ class EventService {
         datetime: datetime,
         endDatetime: endDatetime,
         publishDatetime: publishDatetime,
+        cancellationDeadline: cancellationDeadline,
         location: location,
         maxParticipants: maxParticipants,
         fee: fee,
@@ -90,6 +92,7 @@ class EventService {
     DateTime? datetime,
     DateTime? endDatetime,
     DateTime? publishDatetime,
+    DateTime? cancellationDeadline,
     String? location,
     int? maxParticipants,
     int? fee,
@@ -104,6 +107,7 @@ class EventService {
       if (datetime != null) updates['datetime'] = Timestamp.fromDate(datetime);
       if (endDatetime != null) updates['endDatetime'] = Timestamp.fromDate(endDatetime);
       if (publishDatetime != null) updates['publishDatetime'] = Timestamp.fromDate(publishDatetime);
+      if (cancellationDeadline != null) updates['cancellationDeadline'] = Timestamp.fromDate(cancellationDeadline);
       if (location != null) updates['location'] = location;
       if (maxParticipants != null) updates['maxParticipants'] = maxParticipants;
       if (fee != null) updates['fee'] = fee;

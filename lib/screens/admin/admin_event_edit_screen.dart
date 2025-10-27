@@ -31,6 +31,7 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
   late TimeOfDay? selectedTime;
   late DateTime? selectedEndDateTime;
   late DateTime? selectedPublishDateTime;
+  late DateTime? selectedCancellationDeadline;
   late bool isAllDay;
 
   @override
@@ -47,6 +48,7 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
     selectedDate = widget.event.datetime;
     selectedEndDateTime = widget.event.endDatetime;
     selectedPublishDateTime = widget.event.publishDatetime;
+    selectedCancellationDeadline = widget.event.cancellationDeadline;
 
     // 時刻が00:00かチェックして終日判定
     final hasTime = widget.event.datetime.hour != 0 || widget.event.datetime.minute != 0;
@@ -199,6 +201,7 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
         datetime: startDateTime,
         endDatetime: selectedEndDateTime,
         publishDatetime: selectedPublishDateTime,
+        cancellationDeadline: selectedCancellationDeadline,
         location: locationController.text.isEmpty
             ? null
             : locationController.text,
@@ -459,11 +462,29 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
                       )
                     : null,
                 onTap: () async {
+                  // 終日の場合は開始日の前日まで、時刻がある場合は開始日時まで
+                  DateTime lastDate;
+                  if (selectedDate != null) {
+                    if (isAllDay) {
+                      // 終日の場合は開始日の前日まで
+                      lastDate = DateTime(
+                        selectedDate!.year,
+                        selectedDate!.month,
+                        selectedDate!.day,
+                      ).subtract(const Duration(days: 1));
+                    } else {
+                      // 時刻がある場合は1年後まで
+                      lastDate = DateTime.now().add(const Duration(days: 365));
+                    }
+                  } else {
+                    lastDate = DateTime.now().add(const Duration(days: 365));
+                  }
+
                   final date = await showDatePicker(
                     context: context,
                     initialDate: selectedPublishDateTime ?? DateTime.now(),
                     firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                    lastDate: lastDate,
                   );
                   if (date != null && mounted) {
                     final initialTime = selectedPublishDateTime != null
@@ -476,6 +497,101 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
                     if (time != null) {
                       setState(() {
                         selectedPublishDateTime = DateTime(
+                          date.year,
+                          date.month,
+                          date.day,
+                          time.hour,
+                          time.minute,
+                        );
+                      });
+                    }
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            // キャンセル期限選択
+            Card(
+              child: ListTile(
+                title: Text(
+                  selectedCancellationDeadline == null
+                      ? 'キャンセル期限を選択（任意）'
+                      : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja')
+                          .format(selectedCancellationDeadline!),
+                  style: TextStyle(
+                    color: selectedCancellationDeadline == null ? Colors.grey : null,
+                  ),
+                ),
+                leading: const Icon(Icons.event_busy),
+                trailing: selectedCancellationDeadline != null
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            selectedCancellationDeadline = null;
+                          });
+                        },
+                      )
+                    : null,
+                onTap: () async {
+                  if (selectedDate == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('先に開始日を選択してください')),
+                    );
+                    return;
+                  }
+
+                  // 開始日時を構築
+                  final DateTime startDateTime;
+                  if (!isAllDay && selectedTime != null) {
+                    startDateTime = DateTime(
+                      selectedDate!.year,
+                      selectedDate!.month,
+                      selectedDate!.day,
+                      selectedTime!.hour,
+                      selectedTime!.minute,
+                    );
+                  } else {
+                    startDateTime = DateTime(
+                      selectedDate!.year,
+                      selectedDate!.month,
+                      selectedDate!.day,
+                    );
+                  }
+
+                  // 日付選択（公開日時が設定されていれば公開日時以降、なければ現在時刻以降）
+                  final DateTime firstDate;
+                  if (selectedPublishDateTime != null) {
+                    firstDate = selectedPublishDateTime!;
+                  } else {
+                    firstDate = DateTime.now();
+                  }
+
+                  // 終日の場合は開始日の前日まで、時刻がある場合は開始日時まで
+                  final DateTime lastDate;
+                  if (isAllDay) {
+                    lastDate = startDateTime.subtract(const Duration(days: 1));
+                  } else {
+                    lastDate = startDateTime;
+                  }
+
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: selectedCancellationDeadline ?? firstDate,
+                    firstDate: firstDate,
+                    lastDate: lastDate,
+                  );
+                  if (date != null && mounted) {
+                    final initialTime = selectedCancellationDeadline != null
+                        ? TimeOfDay.fromDateTime(selectedCancellationDeadline!)
+                        : TimeOfDay.now();
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: initialTime,
+                    );
+                    if (time != null) {
+                      setState(() {
+                        selectedCancellationDeadline = DateTime(
                           date.year,
                           date.month,
                           date.day,

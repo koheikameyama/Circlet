@@ -262,7 +262,9 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             ElevatedButton(
-              onPressed: () => _cancelParticipation(context, ref, event.eventId, userId),
+              onPressed: event.canCancel
+                  ? () => _cancelParticipation(context, ref, event.eventId, userId)
+                  : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
@@ -270,6 +272,20 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
               ),
               child: const Text('参加をキャンセル'),
             ),
+            if (!event.canCancel) ...[
+              const SizedBox(height: 8),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  'キャンセルする場合は管理者に連絡してください',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.orange,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ] else ...[
             // Show join button
             ElevatedButton(
