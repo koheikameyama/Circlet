@@ -28,7 +28,7 @@ class _AdminEventCreateScreenState
   final descriptionController = TextEditingController();
   final locationController = TextEditingController();
   final maxParticipantsController = TextEditingController(text: '10');
-  final feeController = TextEditingController(text: '0');
+  final feeController = TextEditingController();
 
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
