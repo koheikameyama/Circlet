@@ -61,7 +61,8 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
           // 削除ボタン
           IconButton(
             icon: const Icon(Icons.delete),
-            onPressed: () => _showDeleteCircleDialog(context, circleAsync.value),
+            onPressed: () =>
+                _showDeleteCircleDialog(context, circleAsync.value),
           ),
         ],
       ),
@@ -151,11 +152,13 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
 
     try {
       // 招待リンクを作成（15秒でタイムアウト）
-      final invite = await circleService.createInviteLink(
+      final invite = await circleService
+          .createInviteLink(
         circleId: circleId,
         createdBy: currentUser.uid,
         validDays: 7,
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 15),
         onTimeout: () {
           throw Exception('招待リンクの作成がタイムアウトしました。インターネット接続を確認してください。');
@@ -206,9 +209,13 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                     );
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: Theme.of(context).colorScheme.primary,
@@ -294,7 +301,8 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
     if (circle == null) return;
 
     final nameController = TextEditingController(text: circle.name);
-    final descriptionController = TextEditingController(text: circle.description);
+    final descriptionController =
+        TextEditingController(text: circle.description);
 
     showDialog(
       context: context,
@@ -510,7 +518,8 @@ class _AdminEventListTabState extends ConsumerState<_AdminEventListTab> {
             // 予定/終了フィルター（リスト表示時のみ）
             if (!_isCalendarView)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -622,163 +631,175 @@ class _AdminEventCard extends ConsumerWidget {
             p.userId == currentUser.uid &&
             p.status != ParticipationStatus.cancelled);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => AdminEventDetailScreen(
-                circleId: circleId,
-                eventId: event.eventId,
+    return Opacity(
+      opacity: event.isPublished ? 1.0 : 0.5,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => AdminEventDetailScreen(
+                  circleId: circleId,
+                  eventId: event.eventId,
+                ),
               ),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // イベント情報
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: _buildDateTimeText(event.datetime, event.endDatetime),
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // イベント情報
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        event.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
-                      ],
-                    ),
-                    if (event.location != null) ...[
-                      const SizedBox(height: 2),
+                      ),
+                      const SizedBox(height: 4),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                          const Icon(Icons.access_time,
+                              size: 14, color: Colors.grey),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: Text(
-                              event.location!,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[700],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            child: _buildDateTimeText(
+                                event.datetime, event.endDatetime),
                           ),
                         ],
                       ),
-                    ],
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        // 参加状況バッジ
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isParticipating
-                                ? Colors.green.shade100
-                                : Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isParticipating ? Icons.check_circle : Icons.people,
-                                size: 14,
-                                color: isParticipating ? Colors.green : Colors.grey[700],
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                isParticipating
-                                    ? '参加中'
-                                    : '${event.confirmedCount}/${event.maxParticipants}人',
+                      if (event.location != null) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on,
+                                size: 14, color: Colors.grey),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                event.location!,
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  color: isParticipating ? Colors.green : Colors.grey[700],
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.grey[700],
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        // キャンセル待ちバッジ
-                        if (event.waitlistCount > 0)
+                      ],
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          // 参加状況バッジ
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.orange.shade100,
+                              color: isParticipating
+                                  ? Colors.green.shade100
+                                  : Colors.grey.shade200,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
-                                  Icons.schedule,
+                                Icon(
+                                  isParticipating
+                                      ? Icons.check_circle
+                                      : Icons.people,
                                   size: 14,
-                                  color: Colors.orange,
+                                  color: isParticipating
+                                      ? Colors.green
+                                      : Colors.grey[700],
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '待ち${event.waitlistCount}',
-                                  style: const TextStyle(
+                                  isParticipating
+                                      ? '参加中'
+                                      : '${event.confirmedCount}/${event.maxParticipants}人',
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.orange,
+                                    color: isParticipating
+                                        ? Colors.green
+                                        : Colors.grey[700],
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        // 参加費バッジ
-                        if (event.fee != null && event.fee! > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade100,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '¥${event.fee}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold,
+                          // キャンセル待ちバッジ
+                          if (event.waitlistCount > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.schedule,
+                                    size: 14,
+                                    color: Colors.orange,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '待ち${event.waitlistCount}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                  ],
+                          // 参加費バッジ
+                          if (event.fee != null && event.fee! > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '¥${event.fee}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ],
+                const Icon(Icons.chevron_right, color: Colors.grey),
+              ],
+            ),
           ),
         ),
       ),
@@ -792,11 +813,14 @@ class _AdminEventCard extends ConsumerWidget {
 
     // 時刻が00:00かチェック
     final startHasTime = startDateTime.hour != 0 || startDateTime.minute != 0;
-    final endHasTime = endDateTime != null && (endDateTime.hour != 0 || endDateTime.minute != 0);
+    final endHasTime = endDateTime != null &&
+        (endDateTime.hour != 0 || endDateTime.minute != 0);
 
     if (endDateTime == null) {
       return Text(
-        startHasTime ? dateFormat.format(startDateTime) : dateOnlyFormat.format(startDateTime),
+        startHasTime
+            ? dateFormat.format(startDateTime)
+            : dateOnlyFormat.format(startDateTime),
         style: TextStyle(
           fontSize: 13,
           color: Colors.grey[700],
@@ -806,8 +830,8 @@ class _AdminEventCard extends ConsumerWidget {
 
     // 同じ日付かチェック
     final isSameDay = startDateTime.year == endDateTime.year &&
-                      startDateTime.month == endDateTime.month &&
-                      startDateTime.day == endDateTime.day;
+        startDateTime.month == endDateTime.month &&
+        startDateTime.day == endDateTime.day;
 
     if (!startHasTime && !endHasTime) {
       // 両方時刻なし
@@ -922,7 +946,8 @@ class _AdminMembersTab extends ConsumerWidget {
                   final isCurrentUser = currentUser?.uid == member.userId;
 
                   // 管理者の数をカウント
-                  final adminCount = circle.members.where((m) => m.role == 'admin').length;
+                  final adminCount =
+                      circle.members.where((m) => m.role == 'admin').length;
                   // 管理者が1人だけで、かつこのメンバーが管理者の場合は権限変更を禁止
                   final canChangeRole = !(isAdmin && adminCount <= 1);
 
@@ -939,7 +964,9 @@ class _AdminMembersTab extends ConsumerWidget {
                         future: _getUserName(ref, member.userId),
                         builder: (context, snapshot) {
                           // サークル内の表示名を優先、なければグローバル名
-                          final displayName = member.displayName ?? snapshot.data ?? member.userId;
+                          final displayName = member.displayName ??
+                              snapshot.data ??
+                              member.userId;
                           return Row(
                             children: [
                               Flexible(
@@ -951,7 +978,8 @@ class _AdminMembersTab extends ConsumerWidget {
                               if (isCurrentUser) ...[
                                 const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.blue.shade100,
                                     borderRadius: BorderRadius.circular(4),
@@ -973,10 +1001,13 @@ class _AdminMembersTab extends ConsumerWidget {
                       subtitle: Text(isAdmin ? '管理者' : 'メンバー'),
                       onTap: isCurrentUser
                           ? () async {
-                              final userName = await _getUserName(ref, member.userId);
-                              final displayName = member.displayName ?? userName;
+                              final userName =
+                                  await _getUserName(ref, member.userId);
+                              final displayName =
+                                  member.displayName ?? userName;
                               if (context.mounted) {
-                                _showEditNameDialog(context, ref, circleId, member.userId, displayName);
+                                _showEditNameDialog(context, ref, circleId,
+                                    member.userId, displayName);
                               }
                             }
                           : null,
@@ -1002,11 +1033,14 @@ class _AdminMembersTab extends ConsumerWidget {
                                   content: const Text('このメンバーを削除しますか？'),
                                   actions: [
                                     TextButton(
-                                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                                      onPressed: () =>
+                                          Navigator.of(dialogContext)
+                                              .pop(false),
                                       child: const Text('キャンセル'),
                                     ),
                                     ElevatedButton(
-                                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                                      onPressed: () =>
+                                          Navigator.of(dialogContext).pop(true),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.red,
                                         foregroundColor: Colors.white,
@@ -1019,7 +1053,8 @@ class _AdminMembersTab extends ConsumerWidget {
 
                               if (confirmed == true && context.mounted) {
                                 try {
-                                  final removeMember = ref.read(removeMemberProvider);
+                                  final removeMember =
+                                      ref.read(removeMemberProvider);
                                   await removeMember(
                                     circleId: circleId,
                                     userId: member.userId,
@@ -1053,7 +1088,9 @@ class _AdminMembersTab extends ConsumerWidget {
                               child: Row(
                                 children: [
                                   Icon(
-                                    isAdmin ? Icons.person : Icons.admin_panel_settings,
+                                    isAdmin
+                                        ? Icons.person
+                                        : Icons.admin_panel_settings,
                                     color: Colors.blue,
                                     size: 20,
                                   ),
@@ -1067,12 +1104,14 @@ class _AdminMembersTab extends ConsumerWidget {
                               enabled: false,
                               child: Row(
                                 children: [
-                                  Icon(Icons.info_outline, color: Colors.grey, size: 20),
+                                  Icon(Icons.info_outline,
+                                      color: Colors.grey, size: 20),
                                   SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
                                       '少なくとも1人の管理者が必要です',
-                                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                                      style: TextStyle(
+                                          color: Colors.grey, fontSize: 12),
                                     ),
                                   ),
                                 ],
@@ -1083,9 +1122,11 @@ class _AdminMembersTab extends ConsumerWidget {
                               value: 'delete',
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete, color: Colors.red, size: 20),
+                                  Icon(Icons.delete,
+                                      color: Colors.red, size: 20),
                                   SizedBox(width: 12),
-                                  Text('削除', style: TextStyle(color: Colors.red)),
+                                  Text('削除',
+                                      style: TextStyle(color: Colors.red)),
                                 ],
                               ),
                             ),
@@ -1114,7 +1155,8 @@ class _AdminMembersTab extends ConsumerWidget {
     }
   }
 
-  Future<void> _addDummyMembers(BuildContext context, WidgetRef ref, String circleId) async {
+  Future<void> _addDummyMembers(
+      BuildContext context, WidgetRef ref, String circleId) async {
     final dummyNames = ['田中太郎', '佐藤花子', '鈴木一郎', '高橋次郎', '伊藤美咲'];
 
     try {
@@ -1313,79 +1355,83 @@ class _AdminProfileTab extends ConsumerWidget {
     }
 
     return userDataAsync?.when(
-      data: (userData) {
-        final profileImageUrl = userData?.profileImageUrl;
+          data: (userData) {
+            final profileImageUrl = userData?.profileImageUrl;
 
-        // サークル情報から表示名を取得
-        final circle = circleAsync.value;
-        final members = circle?.members.where((m) => m.userId == currentUser.uid);
-        final member = (members?.isEmpty ?? true) ? null : members!.first;
-        final displayName = member?.displayName ?? userData?.name ?? '名前未設定';
+            // サークル情報から表示名を取得
+            final circle = circleAsync.value;
+            final members =
+                circle?.members.where((m) => m.userId == currentUser.uid);
+            final member = (members?.isEmpty ?? true) ? null : members!.first;
+            final displayName =
+                member?.displayName ?? userData?.name ?? '名前未設定';
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // プロフィールカード
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      // プロフィール画像
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundImage: profileImageUrl != null
-                            ? NetworkImage(profileImageUrl)
-                            : null,
-                        child: profileImageUrl == null
-                            ? const Icon(Icons.person, size: 50)
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      // 表示名
-                      Text(
-                        displayName,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // 編集ボタン
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            _showEditNameDialog(
-                              context,
-                              ref,
-                              circleId,
-                              currentUser.uid,
-                              displayName,
-                            );
-                          },
-                          icon: const Icon(Icons.edit),
-                          label: const Text('表示名を編集'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // プロフィールカード
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          // プロフィール画像
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundImage: profileImageUrl != null
+                                ? NetworkImage(profileImageUrl)
+                                : null,
+                            child: profileImageUrl == null
+                                ? const Icon(Icons.person, size: 50)
+                                : null,
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                          // 表示名
+                          Text(
+                            displayName,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          // 編集ボタン
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                _showEditNameDialog(
+                                  context,
+                                  ref,
+                                  circleId,
+                                  currentUser.uid,
+                                  displayName,
+                                );
+                              },
+                              icon: const Icon(Icons.edit),
+                              label: const Text('表示名を編集'),
+                              style: ElevatedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Text('エラーが発生しました: $error'),
           ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Text('エラーが発生しました: $error'),
-      ),
-    ) ?? const Center(child: CircularProgressIndicator());
+        ) ??
+        const Center(child: CircularProgressIndicator());
   }
 
   void _showEditNameDialog(
@@ -1503,7 +1549,8 @@ class _AdminCalendarView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final eventsForSelectedDay = selectedDay != null ? _getEventsForDay(selectedDay!) : [];
+    final eventsForSelectedDay =
+        selectedDay != null ? _getEventsForDay(selectedDay!) : [];
 
     return Column(
       children: [

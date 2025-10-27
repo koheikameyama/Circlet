@@ -13,6 +13,7 @@ class EventService {
     String? description,
     required DateTime datetime,
     DateTime? endDatetime,
+    DateTime? publishDatetime,
     String? location,
     required int maxParticipants,
     int? fee,
@@ -26,6 +27,7 @@ class EventService {
         description: description,
         datetime: datetime,
         endDatetime: endDatetime,
+        publishDatetime: publishDatetime,
         location: location,
         maxParticipants: maxParticipants,
         fee: fee,
@@ -87,6 +89,7 @@ class EventService {
     String? description,
     DateTime? datetime,
     DateTime? endDatetime,
+    DateTime? publishDatetime,
     String? location,
     int? maxParticipants,
     int? fee,
@@ -100,6 +103,7 @@ class EventService {
       if (description != null) updates['description'] = description;
       if (datetime != null) updates['datetime'] = Timestamp.fromDate(datetime);
       if (endDatetime != null) updates['endDatetime'] = Timestamp.fromDate(endDatetime);
+      if (publishDatetime != null) updates['publishDatetime'] = Timestamp.fromDate(publishDatetime);
       if (location != null) updates['location'] = location;
       if (maxParticipants != null) updates['maxParticipants'] = maxParticipants;
       if (fee != null) updates['fee'] = fee;

@@ -31,6 +31,7 @@ class _AdminEventCreateScreenState
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
   DateTime? selectedEndDateTime;
+  DateTime? selectedPublishDateTime;
   bool isAllDay = false;
   bool participateAsCreator = true;
 
@@ -178,6 +179,7 @@ class _AdminEventCreateScreenState
             : descriptionController.text,
         datetime: startDateTime,
         endDatetime: selectedEndDateTime,
+        publishDatetime: selectedPublishDateTime,
         location: locationController.text.isEmpty
             ? null
             : locationController.text,
@@ -426,6 +428,60 @@ class _AdminEventCreateScreenState
                   ],
                 ),
               ),
+            const SizedBox(height: 16),
+            // 公開日時選択
+            Card(
+              child: ListTile(
+                title: Text(
+                  selectedPublishDateTime == null
+                      ? '公開日時を選択（任意）'
+                      : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja')
+                          .format(selectedPublishDateTime!),
+                  style: TextStyle(
+                    color: selectedPublishDateTime == null ? Colors.grey : null,
+                  ),
+                ),
+                leading: const Icon(Icons.public),
+                trailing: selectedPublishDateTime != null
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            selectedPublishDateTime = null;
+                          });
+                        },
+                      )
+                    : null,
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: selectedPublishDateTime ?? DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (date != null && mounted) {
+                    final initialTime = selectedPublishDateTime != null
+                        ? TimeOfDay.fromDateTime(selectedPublishDateTime!)
+                        : TimeOfDay.now();
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: initialTime,
+                    );
+                    if (time != null) {
+                      setState(() {
+                        selectedPublishDateTime = DateTime(
+                          date.year,
+                          date.month,
+                          date.day,
+                          time.hour,
+                          time.minute,
+                        );
+                      });
+                    }
+                  }
+                },
+              ),
+            ),
             const SizedBox(height: 16),
             GooglePlaceAutoCompleteTextField(
               textEditingController: locationController,

@@ -62,6 +62,7 @@ class EventModel {
   final String? description;
   final DateTime datetime;
   final DateTime? endDatetime;
+  final DateTime? publishDatetime; // 公開日時
   final String? location;
   final int maxParticipants;
   final int? fee;
@@ -76,6 +77,7 @@ class EventModel {
     this.description,
     required this.datetime,
     this.endDatetime,
+    this.publishDatetime,
     this.location,
     required this.maxParticipants,
     this.fee,
@@ -94,6 +96,9 @@ class EventModel {
       datetime: (data['datetime'] as Timestamp).toDate(),
       endDatetime: data['endDatetime'] != null
           ? (data['endDatetime'] as Timestamp).toDate()
+          : null,
+      publishDatetime: data['publishDatetime'] != null
+          ? (data['publishDatetime'] as Timestamp).toDate()
           : null,
       location: data['location'],
       maxParticipants: data['maxParticipants'] ?? 0,
@@ -114,6 +119,7 @@ class EventModel {
       'description': description,
       'datetime': Timestamp.fromDate(datetime),
       'endDatetime': endDatetime != null ? Timestamp.fromDate(endDatetime!) : null,
+      'publishDatetime': publishDatetime != null ? Timestamp.fromDate(publishDatetime!) : null,
       'location': location,
       'maxParticipants': maxParticipants,
       'fee': fee,
@@ -130,6 +136,7 @@ class EventModel {
     String? description,
     DateTime? datetime,
     DateTime? endDatetime,
+    DateTime? publishDatetime,
     String? location,
     int? maxParticipants,
     int? fee,
@@ -144,6 +151,7 @@ class EventModel {
       description: description ?? this.description,
       datetime: datetime ?? this.datetime,
       endDatetime: endDatetime ?? this.endDatetime,
+      publishDatetime: publishDatetime ?? this.publishDatetime,
       location: location ?? this.location,
       maxParticipants: maxParticipants ?? this.maxParticipants,
       fee: fee ?? this.fee,
@@ -160,6 +168,12 @@ class EventModel {
       participants.where((p) => p.status == ParticipationStatus.waitlist).length;
 
   bool get isFull => confirmedCount >= maxParticipants;
+
+  // 公開されているかチェック（公開日時がnullまたは現在時刻を過ぎている）
+  bool get isPublished {
+    if (publishDatetime == null) return true;
+    return DateTime.now().isAfter(publishDatetime!);
+  }
 
   bool isUserParticipating(String userId) =>
       participants.any((p) => p.userId == userId && p.status == ParticipationStatus.confirmed);

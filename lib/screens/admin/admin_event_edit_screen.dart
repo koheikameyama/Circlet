@@ -30,6 +30,7 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
   late DateTime? selectedDate;
   late TimeOfDay? selectedTime;
   late DateTime? selectedEndDateTime;
+  late DateTime? selectedPublishDateTime;
   late bool isAllDay;
 
   @override
@@ -45,6 +46,7 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
 
     selectedDate = widget.event.datetime;
     selectedEndDateTime = widget.event.endDatetime;
+    selectedPublishDateTime = widget.event.publishDatetime;
 
     // 時刻が00:00かチェックして終日判定
     final hasTime = widget.event.datetime.hour != 0 || widget.event.datetime.minute != 0;
@@ -196,6 +198,7 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
             : descriptionController.text,
         datetime: startDateTime,
         endDatetime: selectedEndDateTime,
+        publishDatetime: selectedPublishDateTime,
         location: locationController.text.isEmpty
             ? null
             : locationController.text,
@@ -431,6 +434,60 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
                   ],
                 ),
               ),
+            const SizedBox(height: 16),
+            // 公開日時選択
+            Card(
+              child: ListTile(
+                title: Text(
+                  selectedPublishDateTime == null
+                      ? '公開日時を選択（任意）'
+                      : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja')
+                          .format(selectedPublishDateTime!),
+                  style: TextStyle(
+                    color: selectedPublishDateTime == null ? Colors.grey : null,
+                  ),
+                ),
+                leading: const Icon(Icons.public),
+                trailing: selectedPublishDateTime != null
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            selectedPublishDateTime = null;
+                          });
+                        },
+                      )
+                    : null,
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: selectedPublishDateTime ?? DateTime.now(),
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (date != null && mounted) {
+                    final initialTime = selectedPublishDateTime != null
+                        ? TimeOfDay.fromDateTime(selectedPublishDateTime!)
+                        : TimeOfDay.now();
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: initialTime,
+                    );
+                    if (time != null) {
+                      setState(() {
+                        selectedPublishDateTime = DateTime(
+                          date.year,
+                          date.month,
+                          date.day,
+                          time.hour,
+                          time.minute,
+                        );
+                      });
+                    }
+                  }
+                },
+              ),
+            ),
             const SizedBox(height: 16),
             GooglePlaceAutoCompleteTextField(
               textEditingController: locationController,

@@ -23,8 +23,7 @@ class ParticipantHomeScreen extends ConsumerStatefulWidget {
       _ParticipantHomeScreenState();
 }
 
-class _ParticipantHomeScreenState
-    extends ConsumerState<ParticipantHomeScreen> {
+class _ParticipantHomeScreenState extends ConsumerState<ParticipantHomeScreen> {
   int _selectedIndex = 0;
 
   @override
@@ -239,7 +238,8 @@ class _EventListTabState extends ConsumerState<_EventListTab> {
             // 予定/終了フィルター（リスト表示時のみ）
             if (!_isCalendarView)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -350,163 +350,175 @@ class _ParticipantEventCard extends ConsumerWidget {
             p.userId == currentUser.uid &&
             p.status != ParticipationStatus.cancelled);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => ParticipantEventDetailScreen(
-                circleId: circleId,
-                eventId: event.eventId,
+    return Opacity(
+      opacity: event.isPublished ? 1.0 : 0.5,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ParticipantEventDetailScreen(
+                  circleId: circleId,
+                  eventId: event.eventId,
+                ),
               ),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // イベント情報
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: _buildDateTimeText(event.datetime, event.endDatetime),
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // イベント情報
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        event.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
-                      ],
-                    ),
-                    if (event.location != null) ...[
-                      const SizedBox(height: 2),
+                      ),
+                      const SizedBox(height: 4),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                          const Icon(Icons.access_time,
+                              size: 14, color: Colors.grey),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: Text(
-                              event.location!,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[700],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            child: _buildDateTimeText(
+                                event.datetime, event.endDatetime),
                           ),
                         ],
                       ),
-                    ],
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        // 参加状況バッジ
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isParticipating
-                                ? Colors.green.shade100
-                                : Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isParticipating ? Icons.check_circle : Icons.people,
-                                size: 14,
-                                color: isParticipating ? Colors.green : Colors.grey[700],
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                isParticipating
-                                    ? '参加中'
-                                    : '${event.confirmedCount}/${event.maxParticipants}人',
+                      if (event.location != null) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on,
+                                size: 14, color: Colors.grey),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                event.location!,
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  color: isParticipating ? Colors.green : Colors.grey[700],
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.grey[700],
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        // キャンセル待ちバッジ
-                        if (event.waitlistCount > 0)
+                      ],
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          // 参加状況バッジ
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.orange.shade100,
+                              color: isParticipating
+                                  ? Colors.green.shade100
+                                  : Colors.grey.shade200,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
-                                  Icons.schedule,
+                                Icon(
+                                  isParticipating
+                                      ? Icons.check_circle
+                                      : Icons.people,
                                   size: 14,
-                                  color: Colors.orange,
+                                  color: isParticipating
+                                      ? Colors.green
+                                      : Colors.grey[700],
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '待ち${event.waitlistCount}',
-                                  style: const TextStyle(
+                                  isParticipating
+                                      ? '参加中'
+                                      : '${event.confirmedCount}/${event.maxParticipants}人',
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.orange,
+                                    color: isParticipating
+                                        ? Colors.green
+                                        : Colors.grey[700],
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        // 参加費バッジ
-                        if (event.fee != null && event.fee! > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade100,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '¥${event.fee}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold,
+                          // キャンセル待ちバッジ
+                          if (event.waitlistCount > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.schedule,
+                                    size: 14,
+                                    color: Colors.orange,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '待ち${event.waitlistCount}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                  ],
+                          // 参加費バッジ
+                          if (event.fee != null && event.fee! > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '¥${event.fee}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ],
+                const Icon(Icons.chevron_right, color: Colors.grey),
+              ],
+            ),
           ),
         ),
       ),
@@ -520,11 +532,14 @@ class _ParticipantEventCard extends ConsumerWidget {
 
     // 時刻が00:00かチェック
     final startHasTime = startDateTime.hour != 0 || startDateTime.minute != 0;
-    final endHasTime = endDateTime != null && (endDateTime.hour != 0 || endDateTime.minute != 0);
+    final endHasTime = endDateTime != null &&
+        (endDateTime.hour != 0 || endDateTime.minute != 0);
 
     if (endDateTime == null) {
       return Text(
-        startHasTime ? dateFormat.format(startDateTime) : dateOnlyFormat.format(startDateTime),
+        startHasTime
+            ? dateFormat.format(startDateTime)
+            : dateOnlyFormat.format(startDateTime),
         style: TextStyle(
           fontSize: 13,
           color: Colors.grey[700],
@@ -534,8 +549,8 @@ class _ParticipantEventCard extends ConsumerWidget {
 
     // 同じ日付かチェック
     final isSameDay = startDateTime.year == endDateTime.year &&
-                      startDateTime.month == endDateTime.month &&
-                      startDateTime.day == endDateTime.day;
+        startDateTime.month == endDateTime.month &&
+        startDateTime.day == endDateTime.day;
 
     if (!startHasTime && !endHasTime) {
       // 両方時刻なし
@@ -677,9 +692,7 @@ class _MemberCard extends ConsumerWidget {
               backgroundImage: profileImageUrl != null
                   ? NetworkImage(profileImageUrl)
                   : null,
-              child: profileImageUrl == null
-                  ? const Icon(Icons.person)
-                  : null,
+              child: profileImageUrl == null ? const Icon(Icons.person) : null,
             ),
             title: Row(
               children: [
@@ -695,7 +708,8 @@ class _MemberCard extends ConsumerWidget {
                 if (isCurrentUser) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.blue.shade100,
                       borderRadius: BorderRadius.circular(4),
@@ -716,7 +730,9 @@ class _MemberCard extends ConsumerWidget {
               member.role == 'admin' ? '管理者' : 'メンバー',
               style: TextStyle(
                 color: member.role == 'admin' ? Colors.blue : Colors.grey[700],
-                fontWeight: member.role == 'admin' ? FontWeight.bold : FontWeight.normal,
+                fontWeight: member.role == 'admin'
+                    ? FontWeight.bold
+                    : FontWeight.normal,
               ),
             ),
             trailing: member.tags.isNotEmpty
@@ -730,14 +746,16 @@ class _MemberCard extends ConsumerWidget {
                               ),
                               materialTapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
                             ))
                         .toList(),
                   )
                 : null,
             onTap: () {
               if (isCurrentUser) {
-                _showEditNameDialog(context, ref, circleId, member.userId, displayName);
+                _showEditNameDialog(
+                    context, ref, circleId, member.userId, displayName);
               } else {
                 _showMemberProfileDialog(context, ref, member, userData);
               }
@@ -772,7 +790,8 @@ class _MemberCard extends ConsumerWidget {
     );
   }
 
-  void _showEditNameDialog(BuildContext context, WidgetRef ref, String circleId, String userId, String currentName) {
+  void _showEditNameDialog(BuildContext context, WidgetRef ref, String circleId,
+      String userId, String currentName) {
     final nameController = TextEditingController(text: currentName);
 
     showDialog(
@@ -877,7 +896,9 @@ class _MemberCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: member.role == 'admin' ? Colors.blue.shade100 : Colors.grey.shade200,
+                color: member.role == 'admin'
+                    ? Colors.blue.shade100
+                    : Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
@@ -885,7 +906,9 @@ class _MemberCard extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: member.role == 'admin' ? Colors.blue.shade800 : Colors.grey.shade800,
+                  color: member.role == 'admin'
+                      ? Colors.blue.shade800
+                      : Colors.grey.shade800,
                 ),
               ),
             ),
@@ -940,79 +963,83 @@ class _ProfileTab extends ConsumerWidget {
     }
 
     return userDataAsync?.when(
-      data: (userData) {
-        final profileImageUrl = userData?.profileImageUrl;
+          data: (userData) {
+            final profileImageUrl = userData?.profileImageUrl;
 
-        // サークル情報から表示名を取得
-        final circle = circleAsync.value;
-        final members = circle?.members.where((m) => m.userId == currentUser.uid);
-        final member = (members?.isEmpty ?? true) ? null : members!.first;
-        final displayName = member?.displayName ?? userData?.name ?? '名前未設定';
+            // サークル情報から表示名を取得
+            final circle = circleAsync.value;
+            final members =
+                circle?.members.where((m) => m.userId == currentUser.uid);
+            final member = (members?.isEmpty ?? true) ? null : members!.first;
+            final displayName =
+                member?.displayName ?? userData?.name ?? '名前未設定';
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // プロフィールカード
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      // プロフィール画像
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundImage: profileImageUrl != null
-                            ? NetworkImage(profileImageUrl)
-                            : null,
-                        child: profileImageUrl == null
-                            ? const Icon(Icons.person, size: 50)
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      // 表示名
-                      Text(
-                        displayName,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // 編集ボタン
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            _showEditNameDialog(
-                              context,
-                              ref,
-                              circleId,
-                              currentUser.uid,
-                              displayName,
-                            );
-                          },
-                          icon: const Icon(Icons.edit),
-                          label: const Text('表示名を編集'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // プロフィールカード
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          // プロフィール画像
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundImage: profileImageUrl != null
+                                ? NetworkImage(profileImageUrl)
+                                : null,
+                            child: profileImageUrl == null
+                                ? const Icon(Icons.person, size: 50)
+                                : null,
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                          // 表示名
+                          Text(
+                            displayName,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          // 編集ボタン
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                _showEditNameDialog(
+                                  context,
+                                  ref,
+                                  circleId,
+                                  currentUser.uid,
+                                  displayName,
+                                );
+                              },
+                              icon: const Icon(Icons.edit),
+                              label: const Text('表示名を編集'),
+                              style: ElevatedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Text('エラーが発生しました: $error'),
           ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Text('エラーが発生しました: $error'),
-      ),
-    ) ?? const Center(child: CircularProgressIndicator());
+        ) ??
+        const Center(child: CircularProgressIndicator());
   }
 
   void _showEditNameDialog(
@@ -1154,7 +1181,8 @@ class _ParticipantCalendarView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final eventsForSelectedDay = selectedDay != null ? _getEventsForDay(selectedDay!) : [];
+    final eventsForSelectedDay =
+        selectedDay != null ? _getEventsForDay(selectedDay!) : [];
 
     return Column(
       children: [

@@ -48,7 +48,8 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
             ),
           );
           final isParticipating = userParticipation.userId.isNotEmpty;
-          final canJoin = event.confirmedCount < event.maxParticipants;
+          final hasCapacity = event.confirmedCount < event.maxParticipants;
+          final canJoin = event.isPublished && hasCapacity;
 
           return SingleChildScrollView(
             child: Column(
@@ -65,6 +66,7 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                   currentUser?.uid ?? '',
                   isParticipating,
                   canJoin,
+                  hasCapacity,
                   userParticipation,
                 ),
 
@@ -201,8 +203,19 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
     String userId,
     bool isParticipating,
     bool canJoin,
+    bool hasCapacity,
     EventParticipant userParticipation,
   ) {
+    String getButtonText() {
+      if (!event.isPublished) {
+        return 'まだ公開されていません';
+      } else if (!hasCapacity) {
+        return '定員に達しています';
+      } else {
+        return '参加する';
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -268,7 +281,7 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 48),
               ),
-              child: Text(canJoin ? '参加する' : '定員に達しています'),
+              child: Text(getButtonText()),
             ),
           ],
         ],
