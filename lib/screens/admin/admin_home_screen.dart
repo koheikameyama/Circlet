@@ -773,7 +773,7 @@ class _AdminEventCard extends ConsumerWidget {
                               ),
                             ),
                           // 参加費バッジ
-                          if (event.fee != null && event.fee! > 0)
+                          if (event.fee != null && event.fee!.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -784,7 +784,7 @@ class _AdminEventCard extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                '¥${event.fee}',
+                                event.isFeeNumeric ? '¥${event.fee}' : event.fee!,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.green,

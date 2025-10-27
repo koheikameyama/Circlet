@@ -34,7 +34,7 @@ class AdminEventPaymentsScreen extends ConsumerWidget {
                 return const Center(child: Text('イベントが見つかりません'));
               }
 
-              if (event.fee == null || event.fee! <= 0) {
+              if (event.fee == null || event.fee!.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -76,7 +76,7 @@ class AdminEventPaymentsScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '参加費: ¥${event.fee}',
+                          event.isFeeNumeric ? '参加費: ¥${event.fee}' : '参加費: ${event.fee}',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -145,7 +145,7 @@ class AdminEventPaymentsScreen extends ConsumerWidget {
               paymentsAsync.when(
                 data: (payments) {
                   final paidCount = payments.where((p) => p.isPaid).length;
-                  final totalAmount = paidCount * (event.fee ?? 0);
+                  final totalAmount = paidCount * (event.feeAsInt ?? 0);
 
                   return Column(
                     children: [
@@ -181,27 +181,28 @@ class AdminEventPaymentsScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '合計金額',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[700],
+                            if (event.isFeeNumeric)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '合計金額',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[700],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '¥$totalAmount',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green.shade800,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '¥$totalAmount',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green.shade800,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
                           ],
                         ),
                       ),
@@ -419,7 +420,7 @@ class _PaymentParticipantRow extends ConsumerWidget {
           userId: userId,
           eventId: event.eventId,
           circleId: event.circleId,
-          amount: event.fee ?? 0,
+          amount: event.feeAsInt ?? 0,
           method: PaymentMethod.cash, // デフォルトは現金
         );
 

@@ -34,7 +34,7 @@ final createEventProvider = Provider<Future<String> Function({
   DateTime? cancellationDeadline,
   String? location,
   required int maxParticipants,
-  int? fee,
+  String? fee,
 })>((ref) {
   return ({
     required String circleId,
@@ -46,7 +46,7 @@ final createEventProvider = Provider<Future<String> Function({
     DateTime? cancellationDeadline,
     String? location,
     required int maxParticipants,
-    int? fee,
+    String? fee,
   }) async {
     final eventService = ref.read(eventServiceProvider);
     return await eventService.createEvent(
@@ -75,7 +75,7 @@ final updateEventProvider = Provider<Future<void> Function({
   DateTime? cancellationDeadline,
   String? location,
   int? maxParticipants,
-  int? fee,
+  String? fee,
 })>((ref) {
   return ({
     required String eventId,
@@ -87,7 +87,7 @@ final updateEventProvider = Provider<Future<void> Function({
     DateTime? cancellationDeadline,
     String? location,
     int? maxParticipants,
-    int? fee,
+    String? fee,
   }) async {
     final eventService = ref.read(eventServiceProvider);
     await eventService.updateEvent(

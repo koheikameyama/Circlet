@@ -72,8 +72,8 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                   userParticipation,
                 ),
 
-                // Fee and Payment Status
-                if (event.fee != null && event.fee! > 0 && isParticipating)
+                // Fee and Payment Status（参加費が設定されている場合）
+                if (event.fee != null && event.fee!.isNotEmpty && isParticipating)
                   _buildPaymentStatus(ref, event, currentUser?.uid ?? ''),
 
                 const Divider(height: 32),
@@ -167,10 +167,10 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
               '待機中: ${event.waitlistCount}人',
               color: Colors.orange.shade200,
             ),
-          if (event.fee != null && event.fee! > 0)
+          if (event.fee != null && event.fee!.isNotEmpty)
             _buildInfoRow(
               Icons.payments,
-              '参加費: ¥${event.fee}',
+              event.isFeeNumeric ? '参加費: ¥${event.fee}' : '参加費: ${event.fee}',
             ),
         ],
       ),
@@ -420,7 +420,7 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
             userId: userId,
             eventId: event.eventId,
             circleId: circleId,
-            amount: event.fee ?? 0,
+            amount: event.feeAsInt ?? 0,
             method: PaymentMethod.paypay,
             status: PaymentStatus.pending,
             createdAt: DateTime.now(),
@@ -460,11 +460,13 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      '参加費: ¥${event.fee}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        event.isFeeNumeric ? '参加費: ¥${event.fee}' : '参加費: ${event.fee}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],

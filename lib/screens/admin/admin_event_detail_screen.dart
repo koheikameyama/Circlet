@@ -174,17 +174,19 @@ class AdminEventDetailScreen extends ConsumerWidget {
                           ],
                         ),
                       ],
-                      if (event.fee != null && event.fee! > 0) ...[
+                      if (event.fee != null && event.fee!.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             const Icon(Icons.payments, color: Colors.white70, size: 18),
                             const SizedBox(width: 8),
-                            Text(
-                              '参加費: ¥${event.fee}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.white70,
+                            Expanded(
+                              child: Text(
+                                event.isFeeNumeric ? '参加費: ¥${event.fee}' : '参加費: ${event.fee}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white70,
+                                ),
                               ),
                             ),
                           ],
@@ -232,24 +234,6 @@ class AdminEventDetailScreen extends ConsumerWidget {
                                 ),
                             ],
                           ),
-                          if (event.fee != null && event.fee! > 0) ...[
-                            const Divider(height: 24),
-                            Row(
-                              children: [
-                                const Icon(Icons.payments, color: Colors.green),
-                                const SizedBox(width: 8),
-                                const Text('参加費: ', style: TextStyle(fontSize: 16)),
-                                Text(
-                                  '¥${event.fee}',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -296,8 +280,8 @@ class AdminEventDetailScreen extends ConsumerWidget {
                   child: _buildParticipantsSection(context, ref, event),
                 ),
 
-                // 支払い管理（参加費がある場合のみ表示）
-                if (event.fee != null && event.fee! > 0)
+                // 支払い管理（参加費が設定されている場合表示）
+                if (event.fee != null && event.fee!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: _buildPaymentManagementSection(context, ref, event),
@@ -519,7 +503,7 @@ class AdminEventDetailScreen extends ConsumerWidget {
               data: (payments) {
                 final paidCount = payments.where((p) => p.isPaid).length;
                 final totalCount = event.confirmedCount;
-                final totalAmount = (event.fee ?? 0) * totalCount;
+                final totalAmount = (event.feeAsInt ?? 0) * totalCount;
                 final paidAmount = payments.where((p) => p.isPaid).fold<int>(
                   0,
                   (sum, payment) => sum + payment.amount,
@@ -548,36 +532,38 @@ class AdminEventDetailScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '合計金額',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[700],
+                    if (event.isFeeNumeric) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '合計金額',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[700],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '¥$paidAmount / ¥$totalAmount',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green.shade800,
+                            const SizedBox(height: 4),
+                            Text(
+                              '¥$paidAmount / ¥$totalAmount',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade800,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,

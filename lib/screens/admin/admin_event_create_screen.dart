@@ -186,7 +186,7 @@ class _AdminEventCreateScreenState
             ? null
             : locationController.text,
         maxParticipants: int.parse(maxParticipantsController.text),
-        fee: int.parse(feeController.text),
+        fee: feeController.text.isEmpty ? null : feeController.text,
       );
 
       final joinEvent = ref.read(joinEventProvider);
@@ -673,11 +673,11 @@ class _AdminEventCreateScreenState
             TextField(
               controller: feeController,
               decoration: const InputDecoration(
-                labelText: '参加費',
+                labelText: '参加費（数値または文字列）',
+                hintText: '例: 500 または 各自負担',
                 border: OutlineInputBorder(),
-                prefixText: '¥',
+                helperText: '数値の場合は支払い管理で合計金額を計算します',
               ),
-              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16),
             const Divider(),

@@ -104,7 +104,7 @@ class _ParticipantHomeScreenState extends ConsumerState<ParticipantHomeScreen> {
         datetime: eventDate,
         location: 'テスト会場',
         maxParticipants: 10,
-        fee: 1000,
+        fee: '1000',
       );
 
       if (context.mounted) {
@@ -492,7 +492,7 @@ class _ParticipantEventCard extends ConsumerWidget {
                               ),
                             ),
                           // 参加費バッジ
-                          if (event.fee != null && event.fee! > 0)
+                          if (event.fee != null && event.fee!.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -503,7 +503,7 @@ class _ParticipantEventCard extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                '¥${event.fee}',
+                                event.isFeeNumeric ? '¥${event.fee}' : event.fee!,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.green,

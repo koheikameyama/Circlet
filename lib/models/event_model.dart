@@ -66,7 +66,7 @@ class EventModel {
   final DateTime? cancellationDeadline; // キャンセル期限
   final String? location;
   final int maxParticipants;
-  final int? fee;
+  final String? fee;
   final List<EventParticipant> participants;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -107,7 +107,9 @@ class EventModel {
           : null,
       location: data['location'],
       maxParticipants: data['maxParticipants'] ?? 0,
-      fee: data['fee'],
+      fee: data['fee'] != null
+          ? (data['fee'] is int ? data['fee'].toString() : data['fee'] as String?)
+          : null,
       participants: (data['participants'] as List<dynamic>?)
               ?.map((p) => EventParticipant.fromMap(p as Map<String, dynamic>))
               .toList() ??
@@ -146,7 +148,7 @@ class EventModel {
     DateTime? cancellationDeadline,
     String? location,
     int? maxParticipants,
-    int? fee,
+    String? fee,
     List<EventParticipant>? participants,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -198,5 +200,17 @@ class EventModel {
   ParticipationStatus? getUserStatus(String userId) {
     final participant = participants.where((p) => p.userId == userId).firstOrNull;
     return participant?.status;
+  }
+
+  // 参加費が数値かどうかをチェック
+  bool get isFeeNumeric {
+    if (fee == null || fee!.isEmpty) return false;
+    return int.tryParse(fee!) != null;
+  }
+
+  // 数値の参加費を取得（数値でない場合はnull）
+  int? get feeAsInt {
+    if (fee == null || fee!.isEmpty) return null;
+    return int.tryParse(fee!);
   }
 }

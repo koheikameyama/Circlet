@@ -43,7 +43,7 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
     descriptionController = TextEditingController(text: widget.event.description ?? '');
     locationController = TextEditingController(text: widget.event.location ?? '');
     maxParticipantsController = TextEditingController(text: widget.event.maxParticipants.toString());
-    feeController = TextEditingController(text: (widget.event.fee ?? 0).toString());
+    feeController = TextEditingController(text: widget.event.fee ?? '');
 
     selectedDate = widget.event.datetime;
     selectedEndDateTime = widget.event.endDatetime;
@@ -206,7 +206,7 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
             ? null
             : locationController.text,
         maxParticipants: int.parse(maxParticipantsController.text),
-        fee: int.parse(feeController.text),
+        fee: feeController.text.isEmpty ? null : feeController.text,
       );
 
       if (mounted) {
@@ -680,11 +680,11 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
             TextField(
               controller: feeController,
               decoration: const InputDecoration(
-                labelText: '参加費',
+                labelText: '参加費（数値または文字列）',
+                hintText: '例: 500 または 各自負担',
                 border: OutlineInputBorder(),
-                prefixText: '¥',
+                helperText: '数値の場合は支払い管理で合計金額を計算します',
               ),
-              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 32),
           ],

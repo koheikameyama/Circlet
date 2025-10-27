@@ -17,7 +17,7 @@ class EventService {
     DateTime? cancellationDeadline,
     String? location,
     required int maxParticipants,
-    int? fee,
+    String? fee,
   }) async {
     try {
       final eventId = _uuid.v4();
@@ -95,7 +95,7 @@ class EventService {
     DateTime? cancellationDeadline,
     String? location,
     int? maxParticipants,
-    int? fee,
+    String? fee,
   }) async {
     try {
       final updates = <String, dynamic>{
