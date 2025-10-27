@@ -365,35 +365,20 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
 
   Future<String> _getUserName(WidgetRef ref, String userId, dynamic circle) async {
     try {
-      print('[DEBUG] _getUserName called for userId: $userId');
-      print('[DEBUG] circle is null: ${circle == null}');
-
       // サークルメンバーからdisplayNameを取得
       if (circle != null) {
-        print('[DEBUG] circle.members count: ${circle.members.length}');
         final members = circle.members.where((m) => m.userId == userId);
         final member = members.isEmpty ? null : members.first;
-        print('[DEBUG] member found: ${member != null}');
-        if (member != null) {
-          print('[DEBUG] member.displayName: ${member.displayName}');
-        }
         if (member?.displayName != null) {
-          print('[DEBUG] Returning circle displayName: ${member!.displayName}');
           return member!.displayName!;
         }
       }
 
       // displayNameがない場合はグローバル名を取得
-      print('[DEBUG] Fetching global user data...');
       final authService = ref.read(authServiceProvider);
       final user = await authService.getUserData(userId);
-      print('[DEBUG] user found: ${user != null}');
-      print('[DEBUG] user?.name: ${user?.name}');
-      final result = user?.name ?? userId;
-      print('[DEBUG] Returning: $result');
-      return result;
+      return user?.name ?? userId;
     } catch (e) {
-      print('[DEBUG] Error in _getUserName: $e');
       return userId;
     }
   }

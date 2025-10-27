@@ -237,35 +237,20 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
 
   Future<String> _getUserName(WidgetRef ref, String userId, dynamic circle) async {
     try {
-      print('[DEBUG PARTICIPANT] _getUserName called for userId: $userId');
-      print('[DEBUG PARTICIPANT] circle is null: ${circle == null}');
-
       // サークルメンバーからdisplayNameを取得
       if (circle != null) {
-        print('[DEBUG PARTICIPANT] circle.members count: ${circle.members.length}');
         final members = circle.members.where((m) => m.userId == userId);
         final member = members.isEmpty ? null : members.first;
-        print('[DEBUG PARTICIPANT] member found: ${member != null}');
-        if (member != null) {
-          print('[DEBUG PARTICIPANT] member.displayName: ${member.displayName}');
-        }
         if (member?.displayName != null) {
-          print('[DEBUG PARTICIPANT] Returning circle displayName: ${member!.displayName}');
           return member!.displayName!;
         }
       }
 
       // displayNameがない場合はグローバル名を取得
-      print('[DEBUG PARTICIPANT] Fetching global user data...');
       final authService = ref.read(authServiceProvider);
       final user = await authService.getUserData(userId);
-      print('[DEBUG PARTICIPANT] user found: ${user != null}');
-      print('[DEBUG PARTICIPANT] user?.name: ${user?.name}');
-      final result = user?.name ?? userId;
-      print('[DEBUG PARTICIPANT] Returning: $result');
-      return result;
+      return user?.name ?? userId;
     } catch (e) {
-      print('[DEBUG PARTICIPANT] Error in _getUserName: $e');
       return userId;
     }
   }

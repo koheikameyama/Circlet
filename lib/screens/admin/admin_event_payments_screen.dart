@@ -385,35 +385,20 @@ class _PaymentParticipantRow extends ConsumerWidget {
 
   Future<String> _getUserName(WidgetRef ref, String userId, dynamic circle) async {
     try {
-      print('[DEBUG PAYMENT] _getUserName called for userId: $userId');
-      print('[DEBUG PAYMENT] circle is null: ${circle == null}');
-
       // サークルメンバーからdisplayNameを取得
       if (circle != null) {
-        print('[DEBUG PAYMENT] circle.members count: ${circle.members.length}');
         final members = circle.members.where((m) => m.userId == userId);
         final member = members.isEmpty ? null : members.first;
-        print('[DEBUG PAYMENT] member found: ${member != null}');
-        if (member != null) {
-          print('[DEBUG PAYMENT] member.displayName: ${member.displayName}');
-        }
         if (member?.displayName != null) {
-          print('[DEBUG PAYMENT] Returning circle displayName: ${member!.displayName}');
           return member!.displayName!;
         }
       }
 
       // displayNameがない場合はグローバル名を取得
-      print('[DEBUG PAYMENT] Fetching global user data...');
       final authService = ref.read(authServiceProvider);
       final user = await authService.getUserData(userId);
-      print('[DEBUG PAYMENT] user found: ${user != null}');
-      print('[DEBUG PAYMENT] user?.name: ${user?.name}');
-      final result = user?.name ?? userId;
-      print('[DEBUG PAYMENT] Returning: $result');
-      return result;
+      return user?.name ?? userId;
     } catch (e) {
-      print('[DEBUG PAYMENT] Error in _getUserName: $e');
       return userId;
     }
   }
