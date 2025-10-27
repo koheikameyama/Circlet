@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/circle_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../config/api_keys.dart';
 
@@ -34,7 +33,6 @@ class _AdminEventCreateScreenState
   DateTime? selectedEndDateTime;
   bool isAllDay = false;
   bool participateAsCreator = true;
-  final Set<String> selectedMemberIds = {};
 
   @override
   void dispose() {
@@ -200,20 +198,10 @@ class _AdminEventCreateScreenState
         }
       }
 
-      // 選択されたメンバーをイベントに追加
-      for (final memberId in selectedMemberIds) {
-        await joinEvent(
-          eventId: eventId,
-          userId: memberId,
-        );
-      }
-
       if (mounted) {
-        final totalParticipants =
-            (participateAsCreator ? 1 : 0) + selectedMemberIds.length;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('「${nameController.text}」を作成しました（参加者: $totalParticipants人）'),
+            content: Text('「${nameController.text}」を作成しました'),
             backgroundColor: Colors.green,
           ),
         );
@@ -229,93 +217,6 @@ class _AdminEventCreateScreenState
         );
       }
     }
-  }
-
-  Future<void> _showMemberSelectionDialog() async {
-    await showDialog(
-      context: context,
-      builder: (dialogContext) {
-        final circleAsync = ref.watch(circleProvider(widget.circleId));
-
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('参加メンバーを選択'),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: circleAsync.when(
-                  data: (circle) {
-                    if (circle == null) {
-                      return const Text('サークル情報が読み込めません');
-                    }
-
-                    final currentUser = ref.read(authStateProvider).value;
-                    final otherMembers = circle.members
-                        .where((m) => m.userId != currentUser?.uid)
-                        .toList();
-
-                    if (otherMembers.isEmpty) {
-                      return const Text('他のメンバーがいません');
-                    }
-
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: otherMembers.length,
-                      itemBuilder: (context, index) {
-                        final member = otherMembers[index];
-                        final userAsync = ref.watch(
-                            userDataProvider(member.userId));
-
-                        return userAsync.when(
-                          data: (userData) {
-                            final displayName = member.displayName ??
-                                userData?.name ??
-                                member.userId;
-                            final isSelected =
-                                selectedMemberIds.contains(member.userId);
-
-                            return CheckboxListTile(
-                              title: Text(displayName),
-                              value: isSelected,
-                              onChanged: (bool? value) {
-                                setState(() {
-                                  if (value == true) {
-                                    selectedMemberIds.add(member.userId);
-                                  } else {
-                                    selectedMemberIds.remove(member.userId);
-                                  }
-                                });
-                              },
-                            );
-                          },
-                          loading: () => const ListTile(
-                            title: Text('読み込み中...'),
-                          ),
-                          error: (_, __) => ListTile(
-                            title: Text(member.userId),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                  error: (error, _) => Text('エラー: $error'),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('閉じる'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    setState(() {}); // 選択数を更新
   }
 
   @override
@@ -619,25 +520,6 @@ class _AdminEventCreateScreenState
                 });
               },
               controlAffinity: ListTileControlAffinity.leading,
-            ),
-            // 参加メンバー選択
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.people),
-                title: const Text('参加メンバーを選択'),
-                subtitle: Text(
-                  selectedMemberIds.isEmpty
-                      ? '選択なし'
-                      : '${selectedMemberIds.length}人選択中',
-                  style: TextStyle(
-                    color:
-                        selectedMemberIds.isEmpty ? Colors.grey : Colors.blue,
-                    fontSize: 12,
-                  ),
-                ),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: _showMemberSelectionDialog,
-              ),
             ),
             const SizedBox(height: 32),
           ],
