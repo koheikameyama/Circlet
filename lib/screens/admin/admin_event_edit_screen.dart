@@ -3,38 +3,54 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/circle_provider.dart';
+import '../../models/event_model.dart';
 import '../../providers/event_provider.dart';
 import '../../config/api_keys.dart';
 
-class AdminEventCreateScreen extends ConsumerStatefulWidget {
-  final String circleId;
+class AdminEventEditScreen extends ConsumerStatefulWidget {
+  final EventModel event;
 
-  const AdminEventCreateScreen({
+  const AdminEventEditScreen({
     super.key,
-    required this.circleId,
+    required this.event,
   });
 
   @override
-  ConsumerState<AdminEventCreateScreen> createState() =>
-      _AdminEventCreateScreenState();
+  ConsumerState<AdminEventEditScreen> createState() =>
+      _AdminEventEditScreenState();
 }
 
-class _AdminEventCreateScreenState
-    extends ConsumerState<AdminEventCreateScreen> {
-  final nameController = TextEditingController();
-  final descriptionController = TextEditingController();
-  final locationController = TextEditingController();
-  final maxParticipantsController = TextEditingController(text: '10');
-  final feeController = TextEditingController(text: '0');
+class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
+  late final TextEditingController nameController;
+  late final TextEditingController descriptionController;
+  late final TextEditingController locationController;
+  late final TextEditingController maxParticipantsController;
+  late final TextEditingController feeController;
 
-  DateTime? selectedDate;
-  TimeOfDay? selectedTime;
-  DateTime? selectedEndDateTime;
-  bool isAllDay = false;
-  bool participateAsCreator = true;
-  final Set<String> selectedMemberIds = {};
+  late DateTime? selectedDate;
+  late TimeOfDay? selectedTime;
+  late DateTime? selectedEndDateTime;
+  late bool isAllDay;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 既存のイベントデータで初期化
+    nameController = TextEditingController(text: widget.event.name);
+    descriptionController = TextEditingController(text: widget.event.description ?? '');
+    locationController = TextEditingController(text: widget.event.location ?? '');
+    maxParticipantsController = TextEditingController(text: widget.event.maxParticipants.toString());
+    feeController = TextEditingController(text: (widget.event.fee ?? 0).toString());
+
+    selectedDate = widget.event.datetime;
+    selectedEndDateTime = widget.event.endDatetime;
+
+    // 時刻が00:00かチェックして終日判定
+    final hasTime = widget.event.datetime.hour != 0 || widget.event.datetime.minute != 0;
+    isAllDay = !hasTime;
+    selectedTime = hasTime ? TimeOfDay.fromDateTime(widget.event.datetime) : null;
+  }
 
   @override
   void dispose() {
@@ -46,7 +62,7 @@ class _AdminEventCreateScreenState
     super.dispose();
   }
 
-  Future<void> _createEvent() async {
+  Future<void> _updateEvent() async {
     if (nameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('イベント名を入力してください')),
@@ -103,10 +119,10 @@ class _AdminEventCreateScreenState
     }
 
     try {
-      // イベントを作成
-      final createEvent = ref.read(createEventProvider);
-      final eventId = await createEvent(
-        circleId: widget.circleId,
+      // イベントを更新
+      final updateEvent = ref.read(updateEventProvider);
+      await updateEvent(
+        eventId: widget.event.eventId,
         name: nameController.text,
         description: descriptionController.text.isEmpty
             ? null
@@ -120,33 +136,10 @@ class _AdminEventCreateScreenState
         fee: int.parse(feeController.text),
       );
 
-      final joinEvent = ref.read(joinEventProvider);
-
-      // 作成者が参加する場合、イベントに参加
-      if (participateAsCreator) {
-        final currentUser = ref.read(authStateProvider).value;
-        if (currentUser != null) {
-          await joinEvent(
-            eventId: eventId,
-            userId: currentUser.uid,
-          );
-        }
-      }
-
-      // 選択されたメンバーをイベントに追加
-      for (final memberId in selectedMemberIds) {
-        await joinEvent(
-          eventId: eventId,
-          userId: memberId,
-        );
-      }
-
       if (mounted) {
-        final totalParticipants =
-            (participateAsCreator ? 1 : 0) + selectedMemberIds.length;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('「${nameController.text}」を作成しました（参加者: $totalParticipants人）'),
+            content: Text('「${nameController.text}」を更新しました'),
             backgroundColor: Colors.green,
           ),
         );
@@ -156,7 +149,7 @@ class _AdminEventCreateScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('イベントの作成に失敗しました: $e'),
+            content: Text('イベントの更新に失敗しました: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -164,105 +157,18 @@ class _AdminEventCreateScreenState
     }
   }
 
-  Future<void> _showMemberSelectionDialog() async {
-    await showDialog(
-      context: context,
-      builder: (dialogContext) {
-        final circleAsync = ref.watch(circleProvider(widget.circleId));
-
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('参加メンバーを選択'),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: circleAsync.when(
-                  data: (circle) {
-                    if (circle == null) {
-                      return const Text('サークル情報が読み込めません');
-                    }
-
-                    final currentUser = ref.read(authStateProvider).value;
-                    final otherMembers = circle.members
-                        .where((m) => m.userId != currentUser?.uid)
-                        .toList();
-
-                    if (otherMembers.isEmpty) {
-                      return const Text('他のメンバーがいません');
-                    }
-
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: otherMembers.length,
-                      itemBuilder: (context, index) {
-                        final member = otherMembers[index];
-                        final userAsync = ref.watch(
-                            userDataProvider(member.userId));
-
-                        return userAsync.when(
-                          data: (userData) {
-                            final displayName = member.displayName ??
-                                userData?.name ??
-                                member.userId;
-                            final isSelected =
-                                selectedMemberIds.contains(member.userId);
-
-                            return CheckboxListTile(
-                              title: Text(displayName),
-                              value: isSelected,
-                              onChanged: (bool? value) {
-                                setState(() {
-                                  if (value == true) {
-                                    selectedMemberIds.add(member.userId);
-                                  } else {
-                                    selectedMemberIds.remove(member.userId);
-                                  }
-                                });
-                              },
-                            );
-                          },
-                          loading: () => const ListTile(
-                            title: Text('読み込み中...'),
-                          ),
-                          error: (_, __) => ListTile(
-                            title: Text(member.userId),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                  error: (error, _) => Text('エラー: $error'),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('閉じる'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    setState(() {}); // 選択数を更新
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('イベント作成'),
+        title: const Text('イベント編集'),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
             child: FilledButton.icon(
-              onPressed: _createEvent,
+              onPressed: _updateEvent,
               icon: const Icon(Icons.check, size: 20),
-              label: const Text('作成'),
+              label: const Text('更新'),
               style: FilledButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.blue,
@@ -310,8 +216,8 @@ class _AdminEventCreateScreenState
                 onTap: () async {
                   final date = await showDatePicker(
                     context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime.now(),
+                    initialDate: selectedDate ?? DateTime.now(),
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (date != null) {
@@ -396,7 +302,7 @@ class _AdminEventCreateScreenState
                     }
                     final time = await showTimePicker(
                       context: context,
-                      initialTime: TimeOfDay.now(),
+                      initialTime: selectedTime ?? TimeOfDay.now(),
                     );
                     if (time != null) {
                       setState(() {
@@ -562,38 +468,6 @@ class _AdminEventCreateScreenState
                 prefixText: '¥',
               ),
               keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            const Divider(),
-            // 自分も参加するチェックボックス
-            CheckboxListTile(
-              title: const Text('自分も参加する'),
-              value: participateAsCreator,
-              onChanged: (value) {
-                setState(() {
-                  participateAsCreator = value ?? true;
-                });
-              },
-              controlAffinity: ListTileControlAffinity.leading,
-            ),
-            // 参加メンバー選択
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.people),
-                title: const Text('参加メンバーを選択'),
-                subtitle: Text(
-                  selectedMemberIds.isEmpty
-                      ? '選択なし'
-                      : '${selectedMemberIds.length}人選択中',
-                  style: TextStyle(
-                    color:
-                        selectedMemberIds.isEmpty ? Colors.grey : Colors.blue,
-                    fontSize: 12,
-                  ),
-                ),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: _showMemberSelectionDialog,
-              ),
             ),
             const SizedBox(height: 32),
           ],
