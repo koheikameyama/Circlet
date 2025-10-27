@@ -202,7 +202,6 @@ class _ParticipantEventCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dateFormat = DateFormat('yyyy/MM/dd (E) HH:mm', 'ja');
     final currentUser = ref.watch(authStateProvider).value;
 
     // 現在のユーザーが参加しているかチェック
@@ -243,15 +242,12 @@ class _ParticipantEventCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Icon(Icons.access_time, size: 14, color: Colors.grey),
                         const SizedBox(width: 4),
-                        Text(
-                          dateFormat.format(event.datetime),
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[700],
-                          ),
+                        Expanded(
+                          child: _buildDateTimeText(event.datetime, event.endDatetime),
                         ),
                       ],
                     ),
@@ -375,6 +371,58 @@ class _ParticipantEventCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildDateTimeText(DateTime startDateTime, DateTime? endDateTime) {
+    final dateFormat = DateFormat('yyyy/MM/dd (E) HH:mm', 'ja');
+    final timeFormat = DateFormat('HH:mm', 'ja');
+
+    if (endDateTime == null) {
+      return Text(
+        dateFormat.format(startDateTime),
+        style: TextStyle(
+          fontSize: 13,
+          color: Colors.grey[700],
+        ),
+      );
+    }
+
+    // 同じ日付かチェック
+    final isSameDay = startDateTime.year == endDateTime.year &&
+                      startDateTime.month == endDateTime.month &&
+                      startDateTime.day == endDateTime.day;
+
+    if (isSameDay) {
+      // 同じ日の場合は1行で表示
+      return Text(
+        '${dateFormat.format(startDateTime)} ~ ${timeFormat.format(endDateTime)}',
+        style: TextStyle(
+          fontSize: 13,
+          color: Colors.grey[700],
+        ),
+      );
+    } else {
+      // 異なる日の場合は2行で表示
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            dateFormat.format(startDateTime),
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[700],
+            ),
+          ),
+          Text(
+            '~ ${dateFormat.format(endDateTime)}',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
+      );
+    }
   }
 }
 
