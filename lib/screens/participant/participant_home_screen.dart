@@ -143,8 +143,26 @@ class _EventListTab extends ConsumerStatefulWidget {
 
 class _EventListTabState extends ConsumerState<_EventListTab> {
   bool _isCalendarView = false;
+  bool _showUpcoming = true; // true: 予定, false: 終了
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+
+  List<EventModel> _filterEvents(List<EventModel> events) {
+    final now = DateTime.now();
+    if (_showUpcoming) {
+      // 予定：終了していないイベント
+      return events.where((event) {
+        final endTime = event.endDatetime ?? event.datetime;
+        return endTime.isAfter(now);
+      }).toList();
+    } else {
+      // 終了：終了したイベント
+      return events.where((event) {
+        final endTime = event.endDatetime ?? event.datetime;
+        return endTime.isBefore(now);
+      }).toList();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,11 +236,54 @@ class _EventListTabState extends ConsumerState<_EventListTab> {
                 ],
               ),
             ),
+            // 予定/終了フィルター（リスト表示時のみ）
+            if (!_isCalendarView)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    DropdownButton<bool>(
+                      value: _showUpcoming,
+                      underline: const SizedBox(),
+                      items: const [
+                        DropdownMenuItem(
+                          value: true,
+                          child: Row(
+                            children: [
+                              Icon(Icons.schedule, size: 18),
+                              SizedBox(width: 8),
+                              Text('予定'),
+                            ],
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: false,
+                          child: Row(
+                            children: [
+                              Icon(Icons.history, size: 18),
+                              SizedBox(width: 8),
+                              Text('終了'),
+                            ],
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _showUpcoming = value;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
             // リスト表示またはカレンダー表示
             Expanded(
               child: _isCalendarView
                   ? _buildCalendarView(events)
-                  : _buildListView(events),
+                  : _buildListView(_filterEvents(events)),
             ),
           ],
         );
