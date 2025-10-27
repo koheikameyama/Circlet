@@ -335,10 +335,15 @@ class AdminEventDetailScreen extends ConsumerWidget {
 
   String _formatEventDateTime(DateTime startDateTime, DateTime? endDateTime) {
     final dateFormat = DateFormat('yyyy/MM/dd (E) HH:mm', 'ja');
+    final dateOnlyFormat = DateFormat('yyyy/MM/dd (E)', 'ja');
     final timeFormat = DateFormat('HH:mm', 'ja');
 
+    // 時刻が00:00かチェック
+    final startHasTime = startDateTime.hour != 0 || startDateTime.minute != 0;
+    final endHasTime = endDateTime != null && (endDateTime.hour != 0 || endDateTime.minute != 0);
+
     if (endDateTime == null) {
-      return dateFormat.format(startDateTime);
+      return startHasTime ? dateFormat.format(startDateTime) : dateOnlyFormat.format(startDateTime);
     }
 
     // 同じ日付かチェック
@@ -346,7 +351,14 @@ class AdminEventDetailScreen extends ConsumerWidget {
                       startDateTime.month == endDateTime.month &&
                       startDateTime.day == endDateTime.day;
 
-    if (isSameDay) {
+    if (!startHasTime && !endHasTime) {
+      // 両方時刻なし
+      if (isSameDay) {
+        return dateOnlyFormat.format(startDateTime);
+      } else {
+        return '${dateOnlyFormat.format(startDateTime)} ~ ${dateOnlyFormat.format(endDateTime)}';
+      }
+    } else if (isSameDay) {
       // 同じ日の場合: "2025/10/22 (月) 14:00 ~ 16:00"
       return '${dateFormat.format(startDateTime)} ~ ${timeFormat.format(endDateTime)}';
     } else {

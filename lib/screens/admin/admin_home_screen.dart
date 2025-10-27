@@ -109,8 +109,10 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
     final locationController = TextEditingController();
     final maxParticipantsController = TextEditingController(text: '10');
     final feeController = TextEditingController(text: '0');
-    DateTime? selectedDateTime;
+    DateTime? selectedDate;
+    TimeOfDay? selectedTime;
     DateTime? selectedEndDateTime;
+    bool isAllDay = false; // 終日フラグ
     bool participateAsCreator = true; // デフォルトで参加する
     final Set<String> selectedMemberIds = {}; // 選択されたメンバーのID
 
@@ -141,19 +143,18 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                     maxLines: 2,
                   ),
                   const SizedBox(height: 12),
-                  // 開始日時選択
+                  // 開始日選択
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(
-                      selectedDateTime == null
-                          ? '開始日時を選択'
-                          : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja')
-                              .format(selectedDateTime!),
+                      selectedDate == null
+                          ? '開始日を選択'
+                          : DateFormat('yyyy/MM/dd (E)', 'ja').format(selectedDate!),
                       style: TextStyle(
-                        color: selectedDateTime == null ? Colors.grey : null,
+                        color: selectedDate == null ? Colors.grey : null,
                       ),
                     ),
-                    leading: const Icon(Icons.event),
+                    leading: const Icon(Icons.calendar_today),
                     onTap: () async {
                       final date = await showDatePicker(
                         context: context,
@@ -161,75 +162,171 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                         firstDate: DateTime.now(),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
                       );
-                      if (date != null && context.mounted) {
+                      if (date != null) {
+                        setState(() {
+                          selectedDate = date;
+                          // 開始日が設定されたら、終了日時にも同じ日付を設定
+                          if (!isAllDay && selectedTime != null) {
+                            selectedEndDateTime = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              selectedTime!.hour,
+                              selectedTime!.minute,
+                            );
+                          } else {
+                            selectedEndDateTime = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                            );
+                          }
+                        });
+                      }
+                    },
+                  ),
+                  // 終日トグル
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('終日'),
+                    value: isAllDay,
+                    onChanged: (value) {
+                      setState(() {
+                        isAllDay = value;
+                        if (isAllDay) {
+                          // 終日にした場合、時刻をクリア
+                          selectedTime = null;
+                          // 終了日時も日付のみに更新
+                          if (selectedDate != null) {
+                            selectedEndDateTime = DateTime(
+                              selectedDate!.year,
+                              selectedDate!.month,
+                              selectedDate!.day,
+                            );
+                          }
+                        }
+                      });
+                    },
+                  ),
+                  // 開始時刻選択（終日でない場合のみ表示）
+                  if (!isAllDay)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        selectedTime == null
+                            ? '開始時刻を選択（任意）'
+                            : '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                          color: selectedTime == null ? Colors.grey : null,
+                        ),
+                      ),
+                      leading: const Icon(Icons.access_time),
+                      trailing: selectedTime != null
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 20),
+                              onPressed: () {
+                                setState(() {
+                                  selectedTime = null;
+                                  // 時刻をクリアしたら、終了日時も日付のみに更新
+                                  if (selectedDate != null) {
+                                    selectedEndDateTime = DateTime(
+                                      selectedDate!.year,
+                                      selectedDate!.month,
+                                      selectedDate!.day,
+                                    );
+                                  }
+                                });
+                              },
+                            )
+                          : null,
+                      onTap: () async {
+                        if (selectedDate == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('先に開始日を選択してください')),
+                          );
+                          return;
+                        }
                         final time = await showTimePicker(
                           context: context,
                           initialTime: TimeOfDay.now(),
                         );
                         if (time != null) {
                           setState(() {
-                            selectedDateTime = DateTime(
-                              date.year,
-                              date.month,
-                              date.day,
+                            selectedTime = time;
+                            // 時刻が設定されたら、終了日時にも同じ時刻を設定
+                            selectedEndDateTime = DateTime(
+                              selectedDate!.year,
+                              selectedDate!.month,
+                              selectedDate!.day,
                               time.hour,
                               time.minute,
                             );
                           });
                         }
-                      }
-                    },
-                  ),
+                      },
+                    ),
                   // 終了日時選択
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       selectedEndDateTime == null
-                          ? '終了日時を選択（任意）'
-                          : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja')
-                              .format(selectedEndDateTime!),
+                          ? '終了日時を選択'
+                          : (isAllDay || selectedTime == null)
+                              ? DateFormat('yyyy/MM/dd (E)', 'ja').format(selectedEndDateTime!)
+                              : DateFormat('yyyy/MM/dd (E) HH:mm', 'ja').format(selectedEndDateTime!),
                       style: TextStyle(
                         color: selectedEndDateTime == null ? Colors.grey : null,
                       ),
                     ),
                     leading: const Icon(Icons.event_available),
-                    trailing: selectedEndDateTime != null
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 20),
-                            onPressed: () {
-                              setState(() {
-                                selectedEndDateTime = null;
-                              });
-                            },
-                          )
-                        : null,
                     onTap: () async {
-                      if (selectedDateTime == null) {
+                      if (selectedDate == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('先に開始日時を選択してください')),
+                          const SnackBar(content: Text('先に開始日を選択してください')),
                         );
                         return;
                       }
 
                       final date = await showDatePicker(
                         context: context,
-                        initialDate: selectedDateTime!,
-                        firstDate: selectedDateTime!,
+                        initialDate: selectedEndDateTime ?? selectedDate!,
+                        firstDate: selectedDate!,
                         lastDate: DateTime.now().add(const Duration(days: 365)),
                       );
                       if (date != null && context.mounted) {
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.fromDateTime(selectedDateTime!),
-                        );
-                        if (time != null) {
+                        if (!isAllDay && selectedTime != null) {
+                          // 終日でなく、時刻が設定されている場合は時刻も選択（任意）
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: selectedTime!,
+                          );
+                          if (time != null) {
+                            setState(() {
+                              selectedEndDateTime = DateTime(
+                                date.year,
+                                date.month,
+                                date.day,
+                                time.hour,
+                                time.minute,
+                              );
+                            });
+                          } else {
+                            // 時刻選択をキャンセルした場合は日付のみ
+                            setState(() {
+                              selectedEndDateTime = DateTime(
+                                date.year,
+                                date.month,
+                                date.day,
+                              );
+                            });
+                          }
+                        } else {
+                          // 終日または時刻が設定されていない場合は日付のみ
                           setState(() {
                             selectedEndDateTime = DateTime(
                               date.year,
                               date.month,
                               date.day,
-                              time.hour,
-                              time.minute,
                             );
                           });
                         }
@@ -359,15 +456,48 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                     );
                     return;
                   }
-                  if (selectedDateTime == null) {
+                  if (selectedDate == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('開始日時を選択してください')),
+                      const SnackBar(content: Text('開始日を選択してください')),
                     );
                     return;
                   }
-                  if (selectedEndDateTime != null &&
-                      (selectedEndDateTime!.isBefore(selectedDateTime!) ||
-                       selectedEndDateTime!.isAtSameMomentAs(selectedDateTime!))) {
+                  if (selectedEndDateTime == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('終了日時を選択してください')),
+                    );
+                    return;
+                  }
+
+                  // 開始日時を構築
+                  final DateTime startDateTime;
+                  if (!isAllDay && selectedTime != null) {
+                    startDateTime = DateTime(
+                      selectedDate!.year,
+                      selectedDate!.month,
+                      selectedDate!.day,
+                      selectedTime!.hour,
+                      selectedTime!.minute,
+                    );
+                  } else {
+                    startDateTime = DateTime(
+                      selectedDate!.year,
+                      selectedDate!.month,
+                      selectedDate!.day,
+                    );
+                  }
+
+                  // 終了日時が開始日時より前でないかチェック
+                  if (selectedEndDateTime!.isBefore(startDateTime)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('終了日時は開始日時より後にしてください')),
+                    );
+                    return;
+                  }
+
+                  // 時刻が設定されている場合は同じ時刻でないかチェック
+                  if (!isAllDay && selectedTime != null &&
+                      selectedEndDateTime!.isAtSameMomentAs(startDateTime)) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('終了日時は開始日時より後にしてください')),
                     );
@@ -385,7 +515,7 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                       description: descriptionController.text.isEmpty
                           ? null
                           : descriptionController.text,
-                      datetime: selectedDateTime!,
+                      datetime: startDateTime,
                       endDatetime: selectedEndDateTime,
                       location: locationController.text.isEmpty
                           ? null
@@ -1113,11 +1243,16 @@ class _AdminEventCard extends ConsumerWidget {
 
   Widget _buildDateTimeText(DateTime startDateTime, DateTime? endDateTime) {
     final dateFormat = DateFormat('yyyy/MM/dd (E) HH:mm', 'ja');
+    final dateOnlyFormat = DateFormat('yyyy/MM/dd (E)', 'ja');
     final timeFormat = DateFormat('HH:mm', 'ja');
+
+    // 時刻が00:00かチェック
+    final startHasTime = startDateTime.hour != 0 || startDateTime.minute != 0;
+    final endHasTime = endDateTime != null && (endDateTime.hour != 0 || endDateTime.minute != 0);
 
     if (endDateTime == null) {
       return Text(
-        dateFormat.format(startDateTime),
+        startHasTime ? dateFormat.format(startDateTime) : dateOnlyFormat.format(startDateTime),
         style: TextStyle(
           fontSize: 13,
           color: Colors.grey[700],
@@ -1130,7 +1265,38 @@ class _AdminEventCard extends ConsumerWidget {
                       startDateTime.month == endDateTime.month &&
                       startDateTime.day == endDateTime.day;
 
-    if (isSameDay) {
+    if (!startHasTime && !endHasTime) {
+      // 両方時刻なし
+      if (isSameDay) {
+        return Text(
+          dateOnlyFormat.format(startDateTime),
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey[700],
+          ),
+        );
+      } else {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              dateOnlyFormat.format(startDateTime),
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[700],
+              ),
+            ),
+            Text(
+              '~ ${dateOnlyFormat.format(endDateTime)}',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[700],
+              ),
+            ),
+          ],
+        );
+      }
+    } else if (isSameDay) {
       // 同じ日の場合は1行で表示
       return Text(
         '${dateFormat.format(startDateTime)} ~ ${timeFormat.format(endDateTime)}',
@@ -1208,7 +1374,6 @@ class _AdminMembersTab extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final member = circle.members[index];
                   final isAdmin = member.role == 'admin';
-                  final isDummy = member.userId.startsWith('dummy_');
 
                   // 管理者の数をカウント
                   final adminCount = circle.members.where((m) => m.role == 'admin').length;
@@ -1224,23 +1389,11 @@ class _AdminMembersTab extends ConsumerWidget {
                           color: Colors.white,
                         ),
                       ),
-                      title: Row(
-                        children: [
-                          Expanded(
-                            child: FutureBuilder<String>(
-                              future: _getUserName(ref, member.userId),
-                              builder: (context, snapshot) {
-                                return Text(snapshot.data ?? member.userId);
-                              },
-                            ),
-                          ),
-                          if (isDummy)
-                            const Chip(
-                              label: Text('テスト', style: TextStyle(fontSize: 10)),
-                              backgroundColor: Colors.orange,
-                              padding: EdgeInsets.symmetric(horizontal: 4),
-                            ),
-                        ],
+                      title: FutureBuilder<String>(
+                        future: _getUserName(ref, member.userId),
+                        builder: (context, snapshot) {
+                          return Text(snapshot.data ?? member.userId);
+                        },
                       ),
                       subtitle: Text(isAdmin ? '管理者' : 'メンバー'),
                       trailing: PopupMenuButton<String>(

@@ -375,11 +375,16 @@ class _ParticipantEventCard extends ConsumerWidget {
 
   Widget _buildDateTimeText(DateTime startDateTime, DateTime? endDateTime) {
     final dateFormat = DateFormat('yyyy/MM/dd (E) HH:mm', 'ja');
+    final dateOnlyFormat = DateFormat('yyyy/MM/dd (E)', 'ja');
     final timeFormat = DateFormat('HH:mm', 'ja');
+
+    // 時刻が00:00かチェック
+    final startHasTime = startDateTime.hour != 0 || startDateTime.minute != 0;
+    final endHasTime = endDateTime != null && (endDateTime.hour != 0 || endDateTime.minute != 0);
 
     if (endDateTime == null) {
       return Text(
-        dateFormat.format(startDateTime),
+        startHasTime ? dateFormat.format(startDateTime) : dateOnlyFormat.format(startDateTime),
         style: TextStyle(
           fontSize: 13,
           color: Colors.grey[700],
@@ -392,7 +397,38 @@ class _ParticipantEventCard extends ConsumerWidget {
                       startDateTime.month == endDateTime.month &&
                       startDateTime.day == endDateTime.day;
 
-    if (isSameDay) {
+    if (!startHasTime && !endHasTime) {
+      // 両方時刻なし
+      if (isSameDay) {
+        return Text(
+          dateOnlyFormat.format(startDateTime),
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey[700],
+          ),
+        );
+      } else {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              dateOnlyFormat.format(startDateTime),
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[700],
+              ),
+            ),
+            Text(
+              '~ ${dateOnlyFormat.format(endDateTime)}',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[700],
+              ),
+            ),
+          ],
+        );
+      }
+    } else if (isSameDay) {
       // 同じ日の場合は1行で表示
       return Text(
         '${dateFormat.format(startDateTime)} ~ ${timeFormat.format(endDateTime)}',
