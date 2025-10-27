@@ -105,15 +105,30 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                // デバッグ用：ダミー参加者追加ボタン
-                TextButton.icon(
-                  onPressed: () => _addDummyParticipant(context, ref, event),
-                  icon: const Icon(Icons.person_add, size: 16),
-                  label: const Text('ダミー追加', style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  ),
+                Row(
+                  children: [
+                    // ゲスト追加ボタン
+                    TextButton.icon(
+                      onPressed: () => _showAddGuestDialog(context, ref, event),
+                      icon: const Icon(Icons.person_add_alt, size: 16),
+                      label: const Text('ゲスト追加', style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // デバッグ用：ダミー参加者追加ボタン
+                    TextButton.icon(
+                      onPressed: () => _addDummyParticipant(context, ref, event),
+                      icon: const Icon(Icons.person_add, size: 16),
+                      label: const Text('ダミー追加', style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -211,9 +226,36 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                   child: FutureBuilder<String>(
                     future: _getUserName(ref, participant.userId),
                     builder: (context, snapshot) {
-                      return Text(
-                        snapshot.data ?? participant.userId,
-                        style: const TextStyle(fontSize: 13),
+                      final isGuest = participant.userId.startsWith('guest_');
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              snapshot.data ?? participant.userId,
+                              style: const TextStyle(fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isGuest) ...[
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.shade100,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'ゲスト',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.purple.shade800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       );
                     },
                   ),
@@ -462,6 +504,112 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$userNameを追加しました'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('エラーが発生しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // ゲスト追加ダイアログ
+  Future<void> _showAddGuestDialog(
+    BuildContext context,
+    WidgetRef ref,
+    EventModel event,
+  ) async {
+    final nameController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('ゲストを追加'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'サークルメンバー以外の参加者を追加できます。',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'ゲスト名',
+                hintText: '例: 田中太郎',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('ゲスト名を入力してください'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              Navigator.of(dialogContext).pop(true);
+            },
+            child: const Text('追加'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && context.mounted) {
+      await _addGuestParticipant(context, ref, event, nameController.text.trim());
+    }
+  }
+
+  // ゲスト参加者を追加
+  Future<void> _addGuestParticipant(
+    BuildContext context,
+    WidgetRef ref,
+    EventModel event,
+    String guestName,
+  ) async {
+    try {
+      // ゲストユーザーIDを生成
+      final now = DateTime.now();
+      final guestUserId = 'guest_${now.millisecondsSinceEpoch}';
+
+      // Firestoreにゲストユーザーを作成
+      await ref.read(authServiceProvider).createDummyUser(
+        userId: guestUserId,
+        name: guestName,
+      );
+
+      // イベントに参加
+      final joinEvent = ref.read(joinEventProvider);
+      await joinEvent(
+        eventId: event.eventId,
+        userId: guestUserId,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$guestNameを追加しました'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 1),
           ),

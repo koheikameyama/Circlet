@@ -151,6 +151,7 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
       future: _getUserName(ref, participant.userId),
       builder: (context, snapshot) {
         final name = snapshot.data ?? participant.userId;
+        final isGuest = participant.userId.startsWith('guest_');
 
         return ListTile(
           contentPadding: const EdgeInsets.symmetric(vertical: 4),
@@ -167,11 +168,36 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
                   : Colors.orange,
             ),
           ),
-          title: Text(
-            name,
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-            ),
+          title: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (isGuest) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade100,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'ゲスト',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

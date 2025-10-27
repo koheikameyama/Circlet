@@ -297,9 +297,34 @@ class _PaymentParticipantRow extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  userName,
-                  style: const TextStyle(fontSize: 14),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        userName,
+                        style: const TextStyle(fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (participant.userId.startsWith('guest_')) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.shade100,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'ゲスト',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.purple.shade800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               if (payment.isPaid)
