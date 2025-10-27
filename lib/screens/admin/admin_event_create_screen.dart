@@ -46,6 +46,39 @@ class _AdminEventCreateScreenState
     super.dispose();
   }
 
+  String? _getEndDateTimeWarning() {
+    if (selectedDate == null || selectedEndDateTime == null) {
+      return null;
+    }
+
+    final DateTime startDateTime;
+    if (!isAllDay && selectedTime != null) {
+      startDateTime = DateTime(
+        selectedDate!.year,
+        selectedDate!.month,
+        selectedDate!.day,
+        selectedTime!.hour,
+        selectedTime!.minute,
+      );
+    } else {
+      startDateTime = DateTime(
+        selectedDate!.year,
+        selectedDate!.month,
+        selectedDate!.day,
+      );
+    }
+
+    if (selectedEndDateTime!.isBefore(startDateTime)) {
+      return '終了日時は開始日時より後にしてください';
+    }
+
+    if (!isAllDay && selectedTime != null && selectedEndDateTime!.isAtSameMomentAs(startDateTime)) {
+      return '終了日時は開始日時より後にしてください';
+    }
+
+    return null;
+  }
+
   Future<void> _createEvent() async {
     if (nameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -56,6 +89,12 @@ class _AdminEventCreateScreenState
     if (selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('開始日を選択してください')),
+      );
+      return;
+    }
+    if (!isAllDay && selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('開始時刻を選択してください')),
       );
       return;
     }
@@ -82,6 +121,34 @@ class _AdminEventCreateScreenState
         selectedDate!.month,
         selectedDate!.day,
       );
+    }
+
+    // 現在時刻
+    final now = DateTime.now();
+
+    // 開始日時が現在時刻より前の場合、確認ダイアログを表示
+    if (startDateTime.isBefore(now)) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('確認'),
+          content: const Text('開始日が現在時刻以前になっています。よろしいですか？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('キャンセル'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) {
+        return;
+      }
     }
 
     // 終了日時が開始日時より前でないかチェック
@@ -310,28 +377,13 @@ class _AdminEventCreateScreenState
                 onTap: () async {
                   final date = await showDatePicker(
                     context: context,
-                    initialDate: DateTime.now(),
+                    initialDate: selectedDate ?? DateTime.now(),
                     firstDate: DateTime.now(),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (date != null) {
                     setState(() {
                       selectedDate = date;
-                      if (!isAllDay && selectedTime != null) {
-                        selectedEndDateTime = DateTime(
-                          date.year,
-                          date.month,
-                          date.day,
-                          selectedTime!.hour,
-                          selectedTime!.minute,
-                        );
-                      } else {
-                        selectedEndDateTime = DateTime(
-                          date.year,
-                          date.month,
-                          date.day,
-                        );
-                      }
                     });
                   }
                 },
@@ -346,13 +398,6 @@ class _AdminEventCreateScreenState
                   isAllDay = value;
                   if (isAllDay) {
                     selectedTime = null;
-                    if (selectedDate != null) {
-                      selectedEndDateTime = DateTime(
-                        selectedDate!.year,
-                        selectedDate!.month,
-                        selectedDate!.day,
-                      );
-                    }
                   }
                 });
               },
@@ -363,30 +408,13 @@ class _AdminEventCreateScreenState
                 child: ListTile(
                   title: Text(
                     selectedTime == null
-                        ? '開始時刻を選択（任意）'
+                        ? '開始時刻を選択'
                         : '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}',
                     style: TextStyle(
                       color: selectedTime == null ? Colors.grey : null,
                     ),
                   ),
                   leading: const Icon(Icons.access_time),
-                  trailing: selectedTime != null
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, size: 20),
-                          onPressed: () {
-                            setState(() {
-                              selectedTime = null;
-                              if (selectedDate != null) {
-                                selectedEndDateTime = DateTime(
-                                  selectedDate!.year,
-                                  selectedDate!.month,
-                                  selectedDate!.day,
-                                );
-                              }
-                            });
-                          },
-                        )
-                      : null,
                   onTap: () async {
                     if (selectedDate == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -396,18 +424,11 @@ class _AdminEventCreateScreenState
                     }
                     final time = await showTimePicker(
                       context: context,
-                      initialTime: TimeOfDay.now(),
+                      initialTime: selectedTime ?? TimeOfDay.now(),
                     );
                     if (time != null) {
                       setState(() {
                         selectedTime = time;
-                        selectedEndDateTime = DateTime(
-                          selectedDate!.year,
-                          selectedDate!.month,
-                          selectedDate!.day,
-                          time.hour,
-                          time.minute,
-                        );
                       });
                     }
                   },
@@ -445,9 +466,12 @@ class _AdminEventCreateScreenState
                   );
                   if (date != null && mounted) {
                     if (!isAllDay && selectedTime != null) {
+                      final initialTime = selectedEndDateTime != null
+                          ? TimeOfDay.fromDateTime(selectedEndDateTime!)
+                          : selectedTime!;
                       final time = await showTimePicker(
                         context: context,
-                        initialTime: selectedTime!,
+                        initialTime: initialTime,
                       );
                       if (time != null) {
                         setState(() {
@@ -481,6 +505,26 @@ class _AdminEventCreateScreenState
                 },
               ),
             ),
+            // 終了日時の警告メッセージ
+            if (_getEndDateTimeWarning() != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _getEndDateTimeWarning()!,
+                        style: const TextStyle(
+                          color: Colors.orange,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 16),
             GooglePlaceAutoCompleteTextField(
               textEditingController: locationController,
