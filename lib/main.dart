@@ -14,7 +14,6 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/circle_selection_screen.dart';
 import 'screens/participant/participant_home_screen.dart';
 import 'screens/admin/admin_home_screen.dart';
-import 'screens/profile/profile_edit_screen.dart';
 
 // 保留中の招待IDを管理するProvider
 final pendingInviteProvider = StateProvider<String?>((ref) => null);
@@ -66,10 +65,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           final circleId = state.pathParameters['circleId']!;
           return AdminHomeScreen(circleId: circleId);
         },
-      ),
-      GoRoute(
-        path: '/profile',
-        builder: (context, state) => const ProfileEditScreen(),
       ),
     ],
   );
@@ -186,6 +181,7 @@ class _GrumaneAppState extends ConsumerState<GrumaneApp> {
 
       final circle = details['circle'];
       final circleName = circle?.name ?? '不明なサークル';
+      final circleId = circle?.circleId ?? '';
 
       // 確認ダイアログを表示
       final confirmed = await showDialog<bool>(
@@ -264,6 +260,13 @@ class _GrumaneAppState extends ConsumerState<GrumaneApp> {
           ScaffoldMessenger.of(navContext).showSnackBar(
             SnackBar(content: Text('$circleNameに参加しました')),
           );
+
+          // 表示名編集ダイアログを表示
+          final currentUser = _deepLinkService?.authService.currentUser;
+          if (currentUser != null && navContext.mounted && circleId.isNotEmpty) {
+            await _showEditNameDialog(navContext, circleId, currentUser.uid);
+          }
+
           ref.read(routerProvider).go('/circles');
         } else {
           ScaffoldMessenger.of(navContext).showSnackBar(
@@ -278,6 +281,85 @@ class _GrumaneAppState extends ConsumerState<GrumaneApp> {
         SnackBar(content: Text('エラーが発生しました: $e')),
       );
     }
+  }
+
+  Future<void> _showEditNameDialog(
+    BuildContext context,
+    String circleId,
+    String userId,
+  ) async {
+    final authService = ref.read(authServiceProvider);
+    final userData = await authService.getUserData(userId);
+    final currentName = userData?.name ?? '';
+
+    if (!context.mounted) return;
+
+    final nameController = TextEditingController(text: currentName);
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false, // ダイアログ外タップで閉じないようにする
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('表示名の設定'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('サークル内で使用する表示名を設定してください'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: '表示名',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // スキップした場合は現在の名前のまま
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('スキップ'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('表示名を入力してください')),
+                );
+                return;
+              }
+
+              try {
+                final circleService = CircleService();
+                await circleService.updateMemberDisplayName(
+                  circleId: circleId,
+                  userId: userId,
+                  displayName: nameController.text,
+                );
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('変更に失敗しました: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('設定'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

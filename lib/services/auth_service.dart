@@ -429,4 +429,9 @@ class AuthService {
       rethrow;
     }
   }
+
+  // ユーザー名を更新
+  Future<void> updateUserName(String userId, String name) async {
+    await updateUserProfile(userId: userId, name: name);
+  }
 }

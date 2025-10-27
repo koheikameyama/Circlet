@@ -5,6 +5,7 @@ import '../../models/payment_model.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/payment_provider.dart';
+import '../../providers/circle_provider.dart';
 
 class AdminEventPaymentsScreen extends ConsumerWidget {
   final String circleId;
@@ -19,18 +20,21 @@ class AdminEventPaymentsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final eventAsync = ref.watch(eventProvider(eventId));
+    final circleAsync = ref.watch(circleProvider(circleId));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('支払い管理'),
       ),
-      body: eventAsync.when(
-        data: (event) {
-          if (event == null) {
-            return const Center(child: Text('イベントが見つかりません'));
-          }
+      body: circleAsync.when(
+        data: (circle) {
+          return eventAsync.when(
+            data: (event) {
+              if (event == null) {
+                return const Center(child: Text('イベントが見つかりません'));
+              }
 
-          if (event.fee == null || event.fee! <= 0) {
+              if (event.fee == null || event.fee! <= 0) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -87,9 +91,15 @@ class AdminEventPaymentsScreen extends ConsumerWidget {
                 // 支払い管理セクション
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: _buildPaymentsSection(context, ref, event),
+                  child: _buildPaymentsSection(context, ref, event, circle),
                 ),
               ],
+            ),
+          );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Center(
+              child: Text('エラーが発生しました: $error'),
             ),
           );
         },
@@ -101,7 +111,7 @@ class AdminEventPaymentsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPaymentsSection(BuildContext context, WidgetRef ref, EventModel event) {
+  Widget _buildPaymentsSection(BuildContext context, WidgetRef ref, EventModel event, dynamic circle) {
     final paymentsAsync = ref.watch(eventPaymentsProvider(event.eventId));
     final confirmedParticipants = event.participants
         .where((p) => p.status == ParticipationStatus.confirmed)
@@ -228,6 +238,7 @@ class AdminEventPaymentsScreen extends ConsumerWidget {
                           participant: participant,
                           payment: payment,
                           event: event,
+                          circle: circle,
                         );
                       }),
                     ],
@@ -248,17 +259,19 @@ class _PaymentParticipantRow extends ConsumerWidget {
   final EventParticipant participant;
   final PaymentModel payment;
   final EventModel event;
+  final dynamic circle;
 
   const _PaymentParticipantRow({
     required this.participant,
     required this.payment,
     required this.event,
+    required this.circle,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return FutureBuilder<String>(
-      future: _getUserName(ref, participant.userId),
+      future: _getUserName(ref, participant.userId, circle),
       builder: (context, snapshot) {
         final userName = snapshot.data ?? participant.userId;
 
@@ -370,12 +383,37 @@ class _PaymentParticipantRow extends ConsumerWidget {
     );
   }
 
-  Future<String> _getUserName(WidgetRef ref, String userId) async {
+  Future<String> _getUserName(WidgetRef ref, String userId, dynamic circle) async {
     try {
+      print('[DEBUG PAYMENT] _getUserName called for userId: $userId');
+      print('[DEBUG PAYMENT] circle is null: ${circle == null}');
+
+      // サークルメンバーからdisplayNameを取得
+      if (circle != null) {
+        print('[DEBUG PAYMENT] circle.members count: ${circle.members.length}');
+        final members = circle.members.where((m) => m.userId == userId);
+        final member = members.isEmpty ? null : members.first;
+        print('[DEBUG PAYMENT] member found: ${member != null}');
+        if (member != null) {
+          print('[DEBUG PAYMENT] member.displayName: ${member.displayName}');
+        }
+        if (member?.displayName != null) {
+          print('[DEBUG PAYMENT] Returning circle displayName: ${member!.displayName}');
+          return member!.displayName!;
+        }
+      }
+
+      // displayNameがない場合はグローバル名を取得
+      print('[DEBUG PAYMENT] Fetching global user data...');
       final authService = ref.read(authServiceProvider);
       final user = await authService.getUserData(userId);
-      return user?.name ?? userId;
+      print('[DEBUG PAYMENT] user found: ${user != null}');
+      print('[DEBUG PAYMENT] user?.name: ${user?.name}');
+      final result = user?.name ?? userId;
+      print('[DEBUG PAYMENT] Returning: $result');
+      return result;
     } catch (e) {
+      print('[DEBUG PAYMENT] Error in _getUserName: $e');
       return userId;
     }
   }

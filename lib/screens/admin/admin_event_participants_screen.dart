@@ -18,18 +18,21 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final eventAsync = ref.watch(eventProvider(eventId));
+    final circleAsync = ref.watch(circleProvider(circleId));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('参加者一覧'),
       ),
-      body: eventAsync.when(
-        data: (event) {
-          if (event == null) {
-            return const Center(child: Text('イベントが見つかりません'));
-          }
+      body: circleAsync.when(
+        data: (circle) {
+          return eventAsync.when(
+            data: (event) {
+              if (event == null) {
+                return const Center(child: Text('イベントが見つかりません'));
+              }
 
-          return SingleChildScrollView(
+              return SingleChildScrollView(
             child: Column(
               children: [
                 // イベント情報サマリー
@@ -74,9 +77,15 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                 // 参加者一覧
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: _buildParticipantsSection(context, ref, event),
+                  child: _buildParticipantsSection(context, ref, event, circle),
                 ),
               ],
+            ),
+          );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Center(
+              child: Text('エラーが発生しました: $error'),
             ),
           );
         },
@@ -88,7 +97,7 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildParticipantsSection(BuildContext context, WidgetRef ref, EventModel event) {
+  Widget _buildParticipantsSection(BuildContext context, WidgetRef ref, EventModel event, dynamic circle) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -144,14 +153,14 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                 ),
               )
             else
-              _buildParticipantsTable(context, ref, event),
+              _buildParticipantsTable(context, ref, event, circle),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildParticipantsTable(BuildContext context, WidgetRef ref, EventModel event) {
+  Widget _buildParticipantsTable(BuildContext context, WidgetRef ref, EventModel event, dynamic circle) {
     // 参加者をステータス順にソート（参加確定 → キャンセル待ち）
     final sortedParticipants = List<EventParticipant>.from(event.participants)
       ..sort((a, b) {
@@ -224,7 +233,7 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
               DataCell(
                 Center(
                   child: FutureBuilder<String>(
-                    future: _getUserName(ref, participant.userId),
+                    future: _getUserName(ref, participant.userId, circle),
                     builder: (context, snapshot) {
                       final isGuest = participant.userId.startsWith('guest_');
                       return Row(
@@ -305,6 +314,7 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                         event.eventId,
                         participant.userId,
                         status,
+                        circle,
                       );
                     },
                     itemBuilder: (BuildContext context) => [
@@ -353,12 +363,37 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
     );
   }
 
-  Future<String> _getUserName(WidgetRef ref, String userId) async {
+  Future<String> _getUserName(WidgetRef ref, String userId, dynamic circle) async {
     try {
+      print('[DEBUG] _getUserName called for userId: $userId');
+      print('[DEBUG] circle is null: ${circle == null}');
+
+      // サークルメンバーからdisplayNameを取得
+      if (circle != null) {
+        print('[DEBUG] circle.members count: ${circle.members.length}');
+        final members = circle.members.where((m) => m.userId == userId);
+        final member = members.isEmpty ? null : members.first;
+        print('[DEBUG] member found: ${member != null}');
+        if (member != null) {
+          print('[DEBUG] member.displayName: ${member.displayName}');
+        }
+        if (member?.displayName != null) {
+          print('[DEBUG] Returning circle displayName: ${member!.displayName}');
+          return member!.displayName!;
+        }
+      }
+
+      // displayNameがない場合はグローバル名を取得
+      print('[DEBUG] Fetching global user data...');
       final authService = ref.read(authServiceProvider);
       final user = await authService.getUserData(userId);
-      return user?.name ?? userId;
+      print('[DEBUG] user found: ${user != null}');
+      print('[DEBUG] user?.name: ${user?.name}');
+      final result = user?.name ?? userId;
+      print('[DEBUG] Returning: $result');
+      return result;
     } catch (e) {
+      print('[DEBUG] Error in _getUserName: $e');
       return userId;
     }
   }
@@ -370,8 +405,9 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
     String eventId,
     String userId,
     ParticipationStatus newStatus,
+    dynamic circle,
   ) async {
-    final userName = await _getUserName(ref, userId);
+    final userName = await _getUserName(ref, userId, circle);
     final statusText = newStatus == ParticipationStatus.confirmed
         ? '参加確定'
         : newStatus == ParticipationStatus.waitlist
@@ -490,7 +526,7 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
         // 既存のメンバーから選択
         final selectedMember = availableMembers[0];
         userId = selectedMember.userId;
-        userName = await _getUserName(ref, userId);
+        userName = await _getUserName(ref, userId, circle);
       }
 
       // イベントに参加

@@ -80,6 +80,10 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
             icon: Icon(Icons.people),
             label: 'メンバー',
           ),
+          NavigationDestination(
+            icon: Icon(Icons.person),
+            label: 'プロフィール',
+          ),
         ],
       ),
       floatingActionButton: _selectedIndex == 0
@@ -98,6 +102,8 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
         return _AdminEventListTab(circleId: widget.circleId);
       case 1:
         return _AdminMembersTab(circleId: widget.circleId);
+      case 2:
+        return _AdminProfileTab(circleId: widget.circleId);
       default:
         return const SizedBox.shrink();
     }
@@ -1374,6 +1380,8 @@ class _AdminMembersTab extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final member = circle.members[index];
                   final isAdmin = member.role == 'admin';
+                  final currentUser = ref.watch(authStateProvider).value;
+                  final isCurrentUser = currentUser?.uid == member.userId;
 
                   // 管理者の数をカウント
                   final adminCount = circle.members.where((m) => m.role == 'admin').length;
@@ -1392,10 +1400,48 @@ class _AdminMembersTab extends ConsumerWidget {
                       title: FutureBuilder<String>(
                         future: _getUserName(ref, member.userId),
                         builder: (context, snapshot) {
-                          return Text(snapshot.data ?? member.userId);
+                          // サークル内の表示名を優先、なければグローバル名
+                          final displayName = member.displayName ?? snapshot.data ?? member.userId;
+                          return Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  displayName,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isCurrentUser) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade100,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'あなた',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
                         },
                       ),
                       subtitle: Text(isAdmin ? '管理者' : 'メンバー'),
+                      onTap: isCurrentUser
+                          ? () async {
+                              final userName = await _getUserName(ref, member.userId);
+                              final displayName = member.displayName ?? userName;
+                              if (context.mounted) {
+                                _showEditNameDialog(context, ref, circleId, member.userId, displayName);
+                              }
+                            }
+                          : null,
                       trailing: PopupMenuButton<String>(
                         icon: const Icon(Icons.more_vert),
                         onSelected: (value) async {
@@ -1621,6 +1667,77 @@ class _AdminMembersTab extends ConsumerWidget {
       }
     }
   }
+
+  void _showEditNameDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String circleId,
+    String userId,
+    String currentName,
+  ) {
+    final nameController = TextEditingController(text: currentName);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('表示名の変更'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: '表示名',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('表示名を入力してください')),
+                );
+                return;
+              }
+
+              Navigator.pop(dialogContext);
+
+              try {
+                final circleService = CircleService();
+                await circleService.updateMemberDisplayName(
+                  circleId: circleId,
+                  userId: userId,
+                  displayName: nameController.text,
+                );
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('表示名を変更しました'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('変更に失敗しました: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('変更'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // 管理者用通知タブ
@@ -1633,6 +1750,174 @@ class _AdminNotificationsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Text('通知管理機能は準備中です'),
+    );
+  }
+}
+
+// 管理者用プロフィールタブ
+class _AdminProfileTab extends ConsumerWidget {
+  final String circleId;
+
+  const _AdminProfileTab({required this.circleId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(authStateProvider).value;
+    final userDataAsync = currentUser != null
+        ? ref.watch(userDataProvider(currentUser.uid))
+        : null;
+    final circleAsync = ref.watch(circleProvider(circleId));
+
+    if (currentUser == null) {
+      return const Center(
+        child: Text('ユーザー情報を取得できませんでした'),
+      );
+    }
+
+    return userDataAsync?.when(
+      data: (userData) {
+        final profileImageUrl = userData?.profileImageUrl;
+
+        // サークル情報から表示名を取得
+        final circle = circleAsync.value;
+        final members = circle?.members.where((m) => m.userId == currentUser.uid);
+        final member = (members?.isEmpty ?? true) ? null : members!.first;
+        final displayName = member?.displayName ?? userData?.name ?? '名前未設定';
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // プロフィールカード
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      // プロフィール画像
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundImage: profileImageUrl != null
+                            ? NetworkImage(profileImageUrl)
+                            : null,
+                        child: profileImageUrl == null
+                            ? const Icon(Icons.person, size: 50)
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      // 表示名
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // 編集ボタン
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            _showEditNameDialog(
+                              context,
+                              ref,
+                              circleId,
+                              currentUser.uid,
+                              displayName,
+                            );
+                          },
+                          icon: const Icon(Icons.edit),
+                          label: const Text('表示名を編集'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Text('エラーが発生しました: $error'),
+      ),
+    ) ?? const Center(child: CircularProgressIndicator());
+  }
+
+  void _showEditNameDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String circleId,
+    String userId,
+    String currentName,
+  ) {
+    final nameController = TextEditingController(text: currentName);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('表示名の変更'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: '表示名',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('表示名を入力してください')),
+                );
+                return;
+              }
+
+              Navigator.pop(dialogContext);
+
+              try {
+                final circleService = CircleService();
+                await circleService.updateMemberDisplayName(
+                  circleId: circleId,
+                  userId: userId,
+                  displayName: nameController.text,
+                );
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('表示名を変更しました'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('変更に失敗しました: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('変更'),
+          ),
+        ],
+      ),
     );
   }
 }

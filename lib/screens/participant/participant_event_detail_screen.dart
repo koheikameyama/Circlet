@@ -24,16 +24,19 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(authStateProvider).value;
     final eventAsync = ref.watch(eventProvider(eventId));
+    final circleAsync = ref.watch(circleProvider(circleId));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('イベント詳細'),
       ),
-      body: eventAsync.when(
-        data: (event) {
-          if (event == null) {
-            return const Center(child: Text('イベントが見つかりません'));
-          }
+      body: circleAsync.when(
+        data: (circle) {
+          return eventAsync.when(
+            data: (event) {
+              if (event == null) {
+                return const Center(child: Text('イベントが見つかりません'));
+              }
 
           // Check if current user is participating
           final userParticipation = event.participants.firstWhere(
@@ -74,6 +77,12 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                 // Participant List
                 _buildParticipantList(context, ref, event),
               ],
+            ),
+          );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Center(
+              child: Text('エラーが発生しました: $error'),
             ),
           );
         },
@@ -514,8 +523,18 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
     }
   }
 
-  Future<String> _getUserName(WidgetRef ref, String userId) async {
+  Future<String> _getUserName(WidgetRef ref, String userId, dynamic circle) async {
     try {
+      // サークルメンバーからdisplayNameを取得
+      if (circle != null) {
+        final members = circle.members.where((m) => m.userId == userId);
+        final member = members.isEmpty ? null : members.first;
+        if (member?.displayName != null) {
+          return member!.displayName!;
+        }
+      }
+
+      // displayNameがない場合はグローバル名を取得
       final authService = ref.read(authServiceProvider);
       final user = await authService.getUserData(userId);
       return user?.name ?? 'ユーザー';

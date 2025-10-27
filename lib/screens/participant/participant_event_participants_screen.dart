@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/event_model.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/circle_provider.dart';
 
 class ParticipantEventParticipantsScreen extends ConsumerWidget {
   final String circleId;
@@ -17,18 +18,21 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final eventAsync = ref.watch(eventProvider(eventId));
+    final circleAsync = ref.watch(circleProvider(circleId));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('参加者一覧'),
       ),
-      body: eventAsync.when(
-        data: (event) {
-          if (event == null) {
-            return const Center(child: Text('イベントが見つかりません'));
-          }
+      body: circleAsync.when(
+        data: (circle) {
+          return eventAsync.when(
+            data: (event) {
+              if (event == null) {
+                return const Center(child: Text('イベントが見つかりません'));
+              }
 
-          return SingleChildScrollView(
+              return SingleChildScrollView(
             child: Column(
               children: [
                 // イベント情報サマリー
@@ -73,9 +77,15 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
                 // 参加者一覧
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: _buildParticipantList(context, ref, event),
+                  child: _buildParticipantList(context, ref, event, circle),
                 ),
               ],
+            ),
+          );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Center(
+              child: Text('エラーが発生しました: $error'),
             ),
           );
         },
@@ -87,7 +97,7 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildParticipantList(BuildContext context, WidgetRef ref, EventModel event) {
+  Widget _buildParticipantList(BuildContext context, WidgetRef ref, EventModel event, dynamic circle) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -135,7 +145,7 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
                     separatorBuilder: (context, index) => const Divider(),
                     itemBuilder: (context, index) {
                       final participant = sortedParticipants[index];
-                      return _buildParticipantItem(ref, participant);
+                      return _buildParticipantItem(ref, participant, circle);
                     },
                   );
                 },
@@ -146,9 +156,9 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildParticipantItem(WidgetRef ref, EventParticipant participant) {
+  Widget _buildParticipantItem(WidgetRef ref, EventParticipant participant, dynamic circle) {
     return FutureBuilder<String>(
-      future: _getUserName(ref, participant.userId),
+      future: _getUserName(ref, participant.userId, circle),
       builder: (context, snapshot) {
         final name = snapshot.data ?? participant.userId;
         final isGuest = participant.userId.startsWith('guest_');
@@ -225,12 +235,37 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
     );
   }
 
-  Future<String> _getUserName(WidgetRef ref, String userId) async {
+  Future<String> _getUserName(WidgetRef ref, String userId, dynamic circle) async {
     try {
+      print('[DEBUG PARTICIPANT] _getUserName called for userId: $userId');
+      print('[DEBUG PARTICIPANT] circle is null: ${circle == null}');
+
+      // サークルメンバーからdisplayNameを取得
+      if (circle != null) {
+        print('[DEBUG PARTICIPANT] circle.members count: ${circle.members.length}');
+        final members = circle.members.where((m) => m.userId == userId);
+        final member = members.isEmpty ? null : members.first;
+        print('[DEBUG PARTICIPANT] member found: ${member != null}');
+        if (member != null) {
+          print('[DEBUG PARTICIPANT] member.displayName: ${member.displayName}');
+        }
+        if (member?.displayName != null) {
+          print('[DEBUG PARTICIPANT] Returning circle displayName: ${member!.displayName}');
+          return member!.displayName!;
+        }
+      }
+
+      // displayNameがない場合はグローバル名を取得
+      print('[DEBUG PARTICIPANT] Fetching global user data...');
       final authService = ref.read(authServiceProvider);
       final user = await authService.getUserData(userId);
-      return user?.name ?? userId;
+      print('[DEBUG PARTICIPANT] user found: ${user != null}');
+      print('[DEBUG PARTICIPANT] user?.name: ${user?.name}');
+      final result = user?.name ?? userId;
+      print('[DEBUG PARTICIPANT] Returning: $result');
+      return result;
     } catch (e) {
+      print('[DEBUG PARTICIPANT] Error in _getUserName: $e');
       return userId;
     }
   }

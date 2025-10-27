@@ -213,6 +213,7 @@ class CircleService {
             role: m.role,
             tags: tags,
             joinedAt: m.joinedAt,
+            displayName: m.displayName,
           );
         }
         return m;
@@ -259,6 +260,7 @@ class CircleService {
             role: role,
             tags: m.tags,
             joinedAt: m.joinedAt,
+            displayName: m.displayName,
           );
         }
         return m;
@@ -270,6 +272,39 @@ class CircleService {
       });
     } catch (e) {
       print('Error updating member role: $e');
+      rethrow;
+    }
+  }
+
+  // メンバーのサークル内表示名を更新
+  Future<void> updateMemberDisplayName({
+    required String circleId,
+    required String userId,
+    required String displayName,
+  }) async {
+    try {
+      final circle = await getCircle(circleId);
+      if (circle == null) return;
+
+      final updatedMembers = circle.members.map((m) {
+        if (m.userId == userId) {
+          return CircleMember(
+            userId: m.userId,
+            role: m.role,
+            tags: m.tags,
+            joinedAt: m.joinedAt,
+            displayName: displayName,
+          );
+        }
+        return m;
+      }).map((m) => m.toMap()).toList();
+
+      await _firestore.collection('circles').doc(circleId).update({
+        'members': updatedMembers,
+        'updatedAt': Timestamp.now(),
+      });
+    } catch (e) {
+      print('Error updating member display name: $e');
       rethrow;
     }
   }

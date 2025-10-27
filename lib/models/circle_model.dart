@@ -5,12 +5,14 @@ class CircleMember {
   final String role;
   final List<String> tags;
   final DateTime joinedAt;
+  final String? displayName; // サークル内での表示名（任意）
 
   CircleMember({
     required this.userId,
     required this.role,
     required this.tags,
     required this.joinedAt,
+    this.displayName,
   });
 
   factory CircleMember.fromMap(Map<String, dynamic> data) {
@@ -19,6 +21,7 @@ class CircleMember {
       role: data['role'] ?? 'member',
       tags: List<String>.from(data['tags'] ?? []),
       joinedAt: (data['joinedAt'] as Timestamp).toDate(),
+      displayName: data['displayName'],
     );
   }
 
@@ -28,6 +31,7 @@ class CircleMember {
       'role': role,
       'tags': tags,
       'joinedAt': Timestamp.fromDate(joinedAt),
+      if (displayName != null) 'displayName': displayName,
     };
   }
 }
