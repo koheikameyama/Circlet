@@ -791,6 +791,7 @@ class AdminEventDetailScreen extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: _buildPaymentStatusCard(
+                            context,
                             '支払い済み',
                             '$paidCount/$totalCount人',
                             Colors.green,
@@ -799,6 +800,7 @@ class AdminEventDetailScreen extends ConsumerWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildPaymentStatusCard(
+                            context,
                             '未払い',
                             '${totalCount - paidCount}人',
                             Colors.orange,
@@ -869,7 +871,7 @@ class AdminEventDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPaymentStatusCard(String label, String value, Color color) {
+  Widget _buildPaymentStatusCard(BuildContext context, String label, String value, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -933,6 +935,7 @@ class AdminEventDetailScreen extends ConsumerWidget {
               children: [
                 Expanded(
                   child: _buildParticipantSummary(
+                    context,
                     '参加確定',
                     '${event.confirmedCount}人',
                     Colors.green,
@@ -941,6 +944,7 @@ class AdminEventDetailScreen extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildParticipantSummary(
+                    context,
                     'キャンセル待ち',
                     '${event.waitlistCount}人',
                     Colors.orange,
@@ -975,7 +979,7 @@ class AdminEventDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildParticipantSummary(String label, String value, Color color) {
+  Widget _buildParticipantSummary(BuildContext context, String label, String value, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

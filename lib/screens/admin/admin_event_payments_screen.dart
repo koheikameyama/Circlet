@@ -31,12 +31,12 @@ class AdminEventPaymentsScreen extends ConsumerWidget {
           }
 
           if (event.fee == null || event.fee! <= 0) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.info_outline, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
+                  const Icon(Icons.info_outline, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
                   Text(
                     '参加費が設定されていません',
                     style: TextStyle(color: Colors.grey, fontSize: 16),
@@ -262,88 +262,108 @@ class _PaymentParticipantRow extends ConsumerWidget {
       builder: (context, snapshot) {
         final userName = snapshot.data ?? participant.userId;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: payment.isPaid ? Colors.green.shade50 : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: payment.isPaid ? Colors.green.shade200 : Colors.grey.shade300,
-            ),
-          ),
-          child: Row(
-            children: [
-              Checkbox(
-                value: payment.isPaid,
-                activeColor: Colors.green,
-                onChanged: (value) {
-                  if (value == true) {
-                    _markAsPaidOrCreate(
-                      context,
-                      ref,
-                      payment.paymentId,
-                      participant.userId,
-                      event,
-                    );
-                  } else {
-                    _markAsUnpaid(
-                      context,
-                      ref,
-                      payment.paymentId,
-                    );
-                  }
-                },
+        return InkWell(
+          onTap: () {
+            if (!payment.isPaid) {
+              _markAsPaidOrCreate(
+                context,
+                ref,
+                payment.paymentId,
+                participant.userId,
+                event,
+              );
+            } else {
+              _markAsUnpaid(
+                context,
+                ref,
+                payment.paymentId,
+              );
+            }
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: payment.isPaid ? Colors.green.shade50 : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: payment.isPaid ? Colors.green.shade200 : Colors.grey.shade300,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        userName,
-                        style: const TextStyle(fontSize: 14),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (participant.userId.startsWith('guest_')) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.purple.shade100,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+            ),
+            child: Row(
+              children: [
+                Checkbox(
+                  value: payment.isPaid,
+                  activeColor: Colors.green,
+                  onChanged: (value) {
+                    if (value == true) {
+                      _markAsPaidOrCreate(
+                        context,
+                        ref,
+                        payment.paymentId,
+                        participant.userId,
+                        event,
+                      );
+                    } else {
+                      _markAsUnpaid(
+                        context,
+                        ref,
+                        payment.paymentId,
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
                         child: Text(
-                          'ゲスト',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.purple.shade800,
+                          userName,
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (participant.userId.startsWith('guest_')) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.shade100,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'ゲスト',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.purple.shade800,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
-                ),
-              ),
-              if (payment.isPaid)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade100,
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    '支払済',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green.shade800,
+                ),
+                if (payment.isPaid)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '支払済',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green.shade800,
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         );
       },

@@ -303,17 +303,7 @@ class _GrumaneAppState extends ConsumerState<GrumaneApp> {
           elevation: 0,
         ),
       ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-        ),
-      ),
+      themeMode: ThemeMode.light, // 常にライトモード
       routerConfig: router,
     );
   }

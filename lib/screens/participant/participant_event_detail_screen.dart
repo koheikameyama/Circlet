@@ -395,6 +395,7 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: _buildParticipantSummary(
+                      context,
                       '参加確定',
                       '${event.confirmedCount}人',
                       Colors.green,
@@ -403,6 +404,7 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildParticipantSummary(
+                      context,
                       'キャンセル待ち',
                       '${event.waitlistCount}人',
                       Colors.orange,
@@ -438,7 +440,7 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildParticipantSummary(String label, String value, Color color) {
+  Widget _buildParticipantSummary(BuildContext context, String label, String value, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
