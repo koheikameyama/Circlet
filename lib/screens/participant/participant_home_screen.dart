@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/circle_provider.dart';
 import '../../providers/event_provider.dart';
@@ -129,7 +130,7 @@ class _ParticipantHomeScreenState
 }
 
 // イベント一覧タブ
-class _EventListTab extends ConsumerWidget {
+class _EventListTab extends ConsumerStatefulWidget {
   final String circleId;
 
   const _EventListTab({
@@ -137,8 +138,17 @@ class _EventListTab extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final eventsAsync = ref.watch(circleEventsProvider(circleId));
+  ConsumerState<_EventListTab> createState() => _EventListTabState();
+}
+
+class _EventListTabState extends ConsumerState<_EventListTab> {
+  bool _isCalendarView = false;
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+
+  @override
+  Widget build(BuildContext context) {
+    final eventsAsync = ref.watch(circleEventsProvider(widget.circleId));
 
     return eventsAsync.when(
       data: (events) {
@@ -177,22 +187,84 @@ class _EventListTab extends ConsumerWidget {
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: events.length,
-          itemBuilder: (context, index) {
-            final event = events[index];
-            return _ParticipantEventCard(
-              event: event,
-              circleId: circleId,
-            );
-          },
+        return Column(
+          children: [
+            // 表示切り替えボタン
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(
+                        value: false,
+                        icon: Icon(Icons.list, size: 18),
+                        label: Text('リスト'),
+                      ),
+                      ButtonSegment(
+                        value: true,
+                        icon: Icon(Icons.calendar_month, size: 18),
+                        label: Text('カレンダー'),
+                      ),
+                    ],
+                    selected: {_isCalendarView},
+                    onSelectionChanged: (Set<bool> selection) {
+                      setState(() {
+                        _isCalendarView = selection.first;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            // リスト表示またはカレンダー表示
+            Expanded(
+              child: _isCalendarView
+                  ? _buildCalendarView(events)
+                  : _buildListView(events),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(
         child: Text('エラーが発生しました: $error'),
       ),
+    );
+  }
+
+  Widget _buildListView(List<EventModel> events) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: events.length,
+      itemBuilder: (context, index) {
+        final event = events[index];
+        return _ParticipantEventCard(
+          event: event,
+          circleId: widget.circleId,
+        );
+      },
+    );
+  }
+
+  Widget _buildCalendarView(List<EventModel> events) {
+    return _ParticipantCalendarView(
+      circleId: widget.circleId,
+      events: events,
+      focusedDay: _focusedDay,
+      selectedDay: _selectedDay,
+      onDaySelected: (selectedDay, focusedDay) {
+        setState(() {
+          _selectedDay = selectedDay;
+          _focusedDay = focusedDay;
+        });
+      },
+      onPageChanged: (focusedDay) {
+        setState(() {
+          _focusedDay = focusedDay;
+        });
+      },
     );
   }
 }
@@ -974,6 +1046,126 @@ class _NotificationsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Text('通知機能は準備中です'),
+    );
+  }
+}
+
+// カレンダービュー
+class _ParticipantCalendarView extends ConsumerWidget {
+  final String circleId;
+  final List<EventModel> events;
+  final DateTime focusedDay;
+  final DateTime? selectedDay;
+  final void Function(DateTime selectedDay, DateTime focusedDay) onDaySelected;
+  final void Function(DateTime focusedDay) onPageChanged;
+
+  const _ParticipantCalendarView({
+    required this.circleId,
+    required this.events,
+    required this.focusedDay,
+    required this.selectedDay,
+    required this.onDaySelected,
+    required this.onPageChanged,
+  });
+
+  List<EventModel> _getEventsForDay(DateTime day) {
+    return events.where((event) {
+      final eventDate = DateTime(
+        event.datetime.year,
+        event.datetime.month,
+        event.datetime.day,
+      );
+      final checkDate = DateTime(day.year, day.month, day.day);
+
+      // 終了日がある場合は範囲チェック
+      if (event.endDatetime != null) {
+        final endDate = DateTime(
+          event.endDatetime!.year,
+          event.endDatetime!.month,
+          event.endDatetime!.day,
+        );
+        return !checkDate.isBefore(eventDate) && !checkDate.isAfter(endDate);
+      }
+
+      return eventDate.isAtSameMomentAs(checkDate);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final eventsForSelectedDay = selectedDay != null ? _getEventsForDay(selectedDay!) : [];
+
+    return Column(
+      children: [
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: TableCalendar(
+            firstDay: DateTime.utc(2020, 1, 1),
+            lastDay: DateTime.utc(2030, 12, 31),
+            focusedDay: focusedDay,
+            selectedDayPredicate: (day) {
+              return selectedDay != null && isSameDay(selectedDay, day);
+            },
+            eventLoader: _getEventsForDay,
+            calendarFormat: CalendarFormat.month,
+            startingDayOfWeek: StartingDayOfWeek.sunday,
+            locale: 'ja_JP',
+            headerStyle: const HeaderStyle(
+              formatButtonVisible: false,
+              titleCentered: true,
+              titleTextStyle: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            calendarStyle: CalendarStyle(
+              todayDecoration: BoxDecoration(
+                color: Colors.blue.shade200,
+                shape: BoxShape.circle,
+              ),
+              selectedDecoration: const BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+              ),
+              markerDecoration: const BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+              ),
+              markersMaxCount: 3,
+            ),
+            onDaySelected: onDaySelected,
+            onPageChanged: onPageChanged,
+          ),
+        ),
+        const SizedBox(height: 8),
+        // 選択された日のイベント一覧
+        Expanded(
+          child: selectedDay == null
+              ? const Center(
+                  child: Text(
+                    '日付を選択してください',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                )
+              : eventsForSelectedDay.isEmpty
+                  ? Center(
+                      child: Text(
+                        '${selectedDay!.month}/${selectedDay!.day}にイベントはありません',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: eventsForSelectedDay.length,
+                      itemBuilder: (context, index) {
+                        return _ParticipantEventCard(
+                          event: eventsForSelectedDay[index],
+                          circleId: circleId,
+                        );
+                      },
+                    ),
+        ),
+      ],
     );
   }
 }

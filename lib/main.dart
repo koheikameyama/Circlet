@@ -78,6 +78,7 @@ void main() async {
 
   // Initialize Japanese locale for date formatting
   await initializeDateFormatting('ja');
+  await initializeDateFormatting('ja_JP');
 
   // LINE SDK初期化
   await LineSDK.instance.setup('2008326126');
