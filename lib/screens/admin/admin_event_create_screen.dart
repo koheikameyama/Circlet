@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import '../../providers/auth_provider.dart';
@@ -598,67 +599,18 @@ class _AdminEventCreateScreenState
               ),
             ),
             const SizedBox(height: 16),
-            GooglePlaceAutoCompleteTextField(
-              textEditingController: locationController,
-              googleAPIKey: ApiKeys.googlePlacesApiKey,
-              inputDecoration: const InputDecoration(
+            TextField(
+              controller: locationController,
+              decoration: InputDecoration(
                 labelText: '場所',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
                 hintText: '場所を入力',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.map),
+                  tooltip: 'Google Mapsで確認',
+                  onPressed: () => _openGoogleMaps(locationController.text),
+                ),
               ),
-              debounceTime: 300,
-              countries: const ["jp"],
-              isLatLngRequired: false,
-              getPlaceDetailWithLatLng: (Prediction prediction) {
-                locationController.text =
-                    prediction.structuredFormatting?.mainText ??
-                        prediction.description ??
-                        '';
-              },
-              itemClick: (Prediction prediction) {
-                locationController.text =
-                    prediction.structuredFormatting?.mainText ??
-                        prediction.description ??
-                        '';
-              },
-              seperatedBuilder: const Divider(),
-              itemBuilder: (context, index, Prediction prediction) {
-                return Container(
-                  padding: const EdgeInsets.all(10),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.location_on, color: Colors.grey),
-                      const SizedBox(width: 7),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              prediction.structuredFormatting?.mainText ??
-                                  prediction.description ??
-                                  "",
-                              style: const TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w500),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (prediction.structuredFormatting?.secondaryText !=
-                                null)
-                              Text(
-                                prediction
-                                    .structuredFormatting!.secondaryText!,
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
-                );
-              },
-              isCrossBtnShown: true,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -697,5 +649,35 @@ class _AdminEventCreateScreenState
         ),
       ),
     );
+  }
+
+  Future<void> _openGoogleMaps(String location) async {
+    if (location.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('場所を入力してください')),
+      );
+      return;
+    }
+
+    final encodedLocation = Uri.encodeComponent(location);
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedLocation');
+
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Google Mapsを開けませんでした')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('エラー: $e')),
+        );
+      }
+    }
   }
 }
