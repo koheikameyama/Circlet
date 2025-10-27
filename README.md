@@ -14,6 +14,7 @@
   - 権限変更（管理者 ⇔ メンバー）
   - メンバー削除
   - 最低1人の管理者を維持する安全機能
+  - サークルごとの表示名設定（ニックネーム、愛称など）
   - ダミーメンバー追加（テスト用）
 - **権限変更UI**:
   - 三点リーダーメニューによる操作
@@ -24,10 +25,24 @@
 - **イベント作成・編集**:
   - イベント名、説明
   - 日時（開始・終了）
+    - 終日設定サポート
+    - 過去日時の場合は確認ダイアログ表示
+  - 公開日時設定（任意）
+    - 設定した日時まで参加者に非表示
+    - 管理者は常に参加可能
+    - 終日イベントの場合は開始日の前日まで設定可能
+  - キャンセル期限設定（任意）
+    - 期限後は参加者のキャンセル不可
+    - 管理者は期限後もキャンセル可能
+    - 公開日時以降、開始日時以前で設定可能
+    - 終日イベントの場合は開始日の前日まで設定可能
   - 場所（Google Places API統合）
   - 定員設定
   - 参加費設定
 - **イベント削除**: 関連する支払い情報も一括削除
+- **イベント表示**:
+  - 非公開イベントは暗く表示（50%透明度）
+  - リストビューとカレンダービューで統一
 - **参加者管理**:
   - 参加者一覧表示（専用ページ）
   - 参加ステータスの手動変更
@@ -62,9 +77,12 @@
 
 #### イベント
 - **イベント参加**:
-  - イベント一覧表示
+  - イベント一覧表示（非公開イベントは暗く表示）
   - 参加登録（定員内：確定、定員超過：キャンセル待ち）
+  - 公開日時前のイベントには参加不可
   - 参加キャンセル
+    - キャンセル期限後はキャンセル不可
+    - 期限後は「管理者に連絡してください」メッセージを表示
 - **イベント詳細**:
   - 日時、場所、定員、参加費の確認
   - 参加状況サマリー（参加確定数、キャンセル待ち数）
@@ -211,6 +229,7 @@ flutter run -d android
     {
       "userId": "string",
       "role": "admin" | "member",   // 権限
+      "displayName": "string?",     // サークル内での表示名（任意）
       "tags": ["string"],
       "joinedAt": "timestamp"
     }
@@ -228,17 +247,19 @@ flutter run -d android
   "circleId": "string",
   "name": "string",
   "description": "string?",
-  "datetime": "timestamp",          // 開始日時
-  "endDatetime": "timestamp?",      // 終了日時
-  "location": "string?",            // 場所
-  "maxParticipants": "number",      // 定員
-  "fee": "number?",                 // 参加費
+  "datetime": "timestamp",               // 開始日時
+  "endDatetime": "timestamp?",           // 終了日時
+  "publishDatetime": "timestamp?",       // 公開日時（任意）
+  "cancellationDeadline": "timestamp?",  // キャンセル期限（任意）
+  "location": "string?",                 // 場所
+  "maxParticipants": "number",           // 定員
+  "fee": "number?",                      // 参加費
   "participants": [
     {
       "userId": "string",
       "status": "confirmed" | "waitlist" | "cancelled",
-      "waitingNumber": "number?",   // キャンセル待ち番号
-      "registeredAt": "timestamp"   // 登録日時
+      "waitingNumber": "number?",        // キャンセル待ち番号
+      "registeredAt": "timestamp"        // 登録日時
     }
   ],
   "createdAt": "timestamp",
