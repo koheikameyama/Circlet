@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/event_model.dart';
+import '../../models/cancellation_request_model.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/circle_provider.dart';
+import '../../providers/cancellation_request_provider.dart';
 
 class AdminEventParticipantsScreen extends ConsumerWidget {
   final String circleId;
@@ -51,27 +53,57 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(Icons.people, size: 16, color: Colors.grey),
-                          const SizedBox(width: 4),
-                          Text(
-                            '参加確定: ${event.confirmedCount}/${event.maxParticipants}人',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          if (event.waitlistCount > 0) ...[
-                            const SizedBox(width: 16),
-                            const Icon(Icons.schedule, size: 16, color: Colors.orange),
-                            const SizedBox(width: 4),
-                            Text(
-                              '待機: ${event.waitlistCount}人',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
-                        ],
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final requestsAsync = ref.watch(eventCancellationRequestsProvider(event.eventId));
+                          final pendingRequestCount = requestsAsync.when(
+                            data: (requests) => requests.where((r) => r.isPending).length,
+                            loading: () => 0,
+                            error: (_, __) => 0,
+                          );
+
+                          return Row(
+                            children: [
+                              const Icon(Icons.people, size: 16, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Text(
+                                '参加確定: ${event.confirmedCount}/${event.maxParticipants}人',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              if (event.waitlistCount > 0) ...[
+                                const SizedBox(width: 16),
+                                const Icon(Icons.schedule, size: 16, color: Colors.orange),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '待機: ${event.waitlistCount}人',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                              if (pendingRequestCount > 0) ...[
+                                const SizedBox(width: 16),
+                                const Icon(Icons.pending_actions, size: 16, color: Colors.red),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'キャンセル申請: $pendingRequestCount人',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
+                ),
+
+                // キャンセル申請一覧
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildCancellationRequestsSection(context, ref, event, circle),
                 ),
 
                 // 参加者一覧
@@ -79,6 +111,7 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   child: _buildParticipantsSection(context, ref, event, circle),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           );
@@ -161,7 +194,7 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
   }
 
   Widget _buildParticipantsTable(BuildContext context, WidgetRef ref, EventModel event, dynamic circle) {
-    // 参加者をステータス順にソート（参加確定 → キャンセル待ち）
+    // 参加者をソート（参加確定を先に、キャンセル待ちを後に）
     final sortedParticipants = List<EventParticipant>.from(event.participants)
       ..sort((a, b) {
         // 参加確定を先に、キャンセル待ちを後に
@@ -170,6 +203,7 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
         } else if (a.status != ParticipationStatus.confirmed && b.status == ParticipationStatus.confirmed) {
           return 1;
         }
+
         // 同じステータスの場合は登録日時順
         return a.registeredAt.compareTo(b.registeredAt);
       });
@@ -646,5 +680,240 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
         );
       }
     }
+  }
+
+  Widget _buildCancellationRequestsSection(
+    BuildContext context,
+    WidgetRef ref,
+    EventModel event,
+    dynamic circle,
+  ) {
+    final requestsAsync = ref.watch(eventCancellationRequestsProvider(event.eventId));
+
+    return requestsAsync.when(
+      data: (requests) {
+        // 承認待ちの申請のみをフィルター
+        final pendingRequests = requests.where((r) => r.isPending).toList();
+
+        if (pendingRequests.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.pending_actions, color: Colors.orange),
+                    const SizedBox(width: 8),
+                    Text(
+                      'キャンセル申請 (${pendingRequests.length}件)',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ...pendingRequests.map((request) {
+                  return _buildRequestCard(context, ref, request, event, circle);
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildRequestCard(
+    BuildContext context,
+    WidgetRef ref,
+    CancellationRequestModel request,
+    EventModel event,
+    dynamic circle,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FutureBuilder<String>(
+            future: _getUserName(ref, request.userId, circle),
+            builder: (context, snapshot) {
+              return Row(
+                children: [
+                  const Icon(Icons.person, size: 18, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      snapshot.data ?? request.userId,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              request.reason,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () async {
+                  final currentUser = ref.read(authStateProvider).value;
+                  if (currentUser == null) return;
+
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('申請を却下'),
+                      content: const Text('この申請を却下しますか？'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: const Text('キャンセル'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                          ),
+                          child: const Text('却下'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    try {
+                      final rejectRequest = ref.read(rejectCancellationRequestProvider);
+                      await rejectRequest(
+                        eventId: event.eventId,
+                        requestId: request.requestId,
+                        adminId: currentUser.uid,
+                      );
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('申請を却下しました'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('エラーが発生しました: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                icon: const Icon(Icons.close, size: 18),
+                label: const Text('却下'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final currentUser = ref.read(authStateProvider).value;
+                  if (currentUser == null) return;
+
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('申請を承諾'),
+                      content: const Text('この申請を承諾し、参加者をキャンセルしますか？'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: const Text('キャンセル'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                          ),
+                          child: const Text('承諾'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    try {
+                      final approveRequest = ref.read(approveCancellationRequestProvider);
+                      await approveRequest(
+                        eventId: event.eventId,
+                        requestId: request.requestId,
+                        adminId: currentUser.uid,
+                      );
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('申請を承諾し、参加者をキャンセルしました'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('エラーが発生しました: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                icon: const Icon(Icons.check, size: 18),
+                label: const Text('承諾'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

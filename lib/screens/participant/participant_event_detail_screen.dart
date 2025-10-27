@@ -4,10 +4,12 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/event_model.dart';
 import '../../models/payment_model.dart';
+import '../../models/cancellation_request_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../providers/circle_provider.dart';
+import '../../providers/cancellation_request_provider.dart';
 import 'participant_event_participants_screen.dart';
 
 class ParticipantEventDetailScreen extends ConsumerWidget {
@@ -261,31 +263,132 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: event.canCancel
-                  ? () => _cancelParticipation(context, ref, event.eventId, userId)
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 48),
-              ),
-              child: const Text('参加をキャンセル'),
-            ),
-            if (!event.canCancel) ...[
-              const SizedBox(height: 8),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  'キャンセルする場合は管理者に連絡してください',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.orange,
-                  ),
-                  textAlign: TextAlign.center,
+            // キャンセルボタンまたは申請ボタン
+            if (event.canCancel)
+              // キャンセル期限内：通常のキャンセルボタン
+              ElevatedButton(
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('参加をキャンセル'),
+                      content: const Text('参加をキャンセルしますか？'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: const Text('いいえ'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                          ),
+                          child: const Text('キャンセル'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    await _cancelParticipation(context, ref, event.eventId, userId);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 48),
                 ),
+                child: const Text('参加をキャンセル'),
+              )
+            else
+              // キャンセル期限過ぎ：申請ボタンまたは申請状況表示
+              Consumer(
+                builder: (context, ref, child) {
+                  final requestAsync = ref.watch(
+                    userPendingRequestProvider((
+                      eventId: event.eventId,
+                      userId: userId,
+                    )),
+                  );
+
+                  return requestAsync.when(
+                    data: (request) {
+                      if (request != null) {
+                        // 申請済み
+                        return Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.orange),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.hourglass_empty, color: Colors.orange),
+                                  const SizedBox(width: 8),
+                                  const Expanded(
+                                    child: Text(
+                                      'キャンセル申請中',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.orange,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '理由: ${request.reason}',
+                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        );
+                      } else {
+                        // 未申請：申請ボタン表示
+                        return Column(
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => _showCancellationRequestDialog(context, ref, event.eventId, userId),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(double.infinity, 48),
+                              ),
+                              child: const Text('キャンセルを申請'),
+                            ),
+                            const SizedBox(height: 8),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(
+                                'キャンセル期限を過ぎています。管理者に申請してください',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.orange,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                    },
+                    loading: () => const CircularProgressIndicator(),
+                    error: (_, __) => ElevatedButton(
+                      onPressed: () => _showCancellationRequestDialog(context, ref, event.eventId, userId),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                      child: const Text('キャンセルを申請'),
+                    ),
+                  );
+                },
               ),
-            ],
           ] else ...[
             // Show join button
             ElevatedButton(
@@ -630,5 +733,92 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
         );
       }
     }
+  }
+
+  Future<void> _showCancellationRequestDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String eventId,
+    String userId,
+  ) async {
+    final reasonController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('キャンセル申請'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'キャンセル理由を入力してください',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                decoration: const InputDecoration(
+                  hintText: '理由を記入',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 5,
+                autofocus: true,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (reasonController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('理由を入力してください')),
+                );
+                return;
+              }
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('申請'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && context.mounted) {
+      try {
+        final createRequest = ref.read(createCancellationRequestProvider);
+        await createRequest(
+          eventId: eventId,
+          userId: userId,
+          reason: reasonController.text.trim(),
+        );
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('キャンセル申請を送信しました'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('申請の送信に失敗しました: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+
+    reasonController.dispose();
   }
 }

@@ -9,6 +9,7 @@ import '../../models/event_model.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/payment_provider.dart';
+import '../../providers/cancellation_request_provider.dart';
 import '../../config/api_keys.dart';
 import 'admin_event_participants_screen.dart';
 import 'admin_event_payments_screen.dart';
@@ -670,26 +671,58 @@ class AdminEventDetailScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildParticipantSummary(
-                    context,
-                    '参加確定',
-                    '${event.confirmedCount}人',
-                    Colors.green,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildParticipantSummary(
-                    context,
-                    'キャンセル待ち',
-                    '${event.waitlistCount}人',
-                    Colors.orange,
-                  ),
-                ),
-              ],
+            Consumer(
+              builder: (context, ref, child) {
+                final requestsAsync = ref.watch(eventCancellationRequestsProvider(event.eventId));
+                final pendingRequestCount = requestsAsync.when(
+                  data: (requests) => requests.where((r) => r.isPending).length,
+                  loading: () => 0,
+                  error: (_, __) => 0,
+                );
+
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildParticipantSummary(
+                            context,
+                            '参加確定',
+                            '${event.confirmedCount}人',
+                            Colors.green,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildParticipantSummary(
+                            context,
+                            'キャンセル待ち',
+                            '${event.waitlistCount}人',
+                            Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (pendingRequestCount > 0) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Icon(Icons.pending_actions, size: 16, color: Colors.red),
+                          const SizedBox(width: 4),
+                          Text(
+                            'キャンセル申請: $pendingRequestCount人',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 16),
             SizedBox(
