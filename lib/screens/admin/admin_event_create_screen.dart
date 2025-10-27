@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -660,15 +661,27 @@ class _AdminEventCreateScreenState
     }
 
     final encodedLocation = Uri.encodeComponent(location);
-    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedLocation');
 
+    // 1. Google Mapsアプリを試す
+    final googleMapsAppUrl = Uri.parse('comgooglemaps://?q=$encodedLocation');
     try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
+      if (await canLaunchUrl(googleMapsAppUrl)) {
+        await launchUrl(googleMapsAppUrl, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (e) {
+      // Google Mapsアプリがない場合、次の処理に進む
+    }
+
+    // 2. ブラウザでGoogle Mapsを開く
+    final webUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedLocation');
+    try {
+      if (await canLaunchUrl(webUrl)) {
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Google Mapsを開けませんでした')),
+            const SnackBar(content: Text('地図を開けませんでした')),
           );
         }
       }
