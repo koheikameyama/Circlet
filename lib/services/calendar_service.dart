@@ -10,7 +10,7 @@ class CalendarService {
   // カレンダー権限をリクエスト
   Future<bool> requestCalendarPermission() async {
     try {
-      final permissionStatus = await Permission.calendar.request();
+      final permissionStatus = await Permission.calendarFullAccess.request();
       return permissionStatus.isGranted;
     } catch (e) {
       AppLogger.error('Error requesting calendar permission: $e');

@@ -35,12 +35,12 @@ class AdminEventPaymentsScreen extends ConsumerWidget {
               }
 
               if (event.fee == null || event.fee!.isEmpty) {
-            return Center(
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.info_outline, size: 64, color: Colors.grey),
-                  const SizedBox(height: 16),
+                  Icon(Icons.info_outline, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
                   Text(
                     '参加費が設定されていません',
                     style: TextStyle(color: Colors.grey, fontSize: 16),

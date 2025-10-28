@@ -1113,30 +1113,6 @@ class _ProfileTab extends ConsumerWidget {
   }
 }
 
-// 支払いタブ
-class _PaymentsTab extends StatelessWidget {
-  const _PaymentsTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('支払い機能は準備中です'),
-    );
-  }
-}
-
-// 通知タブ
-class _NotificationsTab extends StatelessWidget {
-  const _NotificationsTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('通知機能は準備中です'),
-    );
-  }
-}
-
 // カレンダービュー
 class _ParticipantCalendarView extends ConsumerWidget {
   final String circleId;

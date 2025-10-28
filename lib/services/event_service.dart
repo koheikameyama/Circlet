@@ -256,7 +256,7 @@ class EventService {
         final maxWaitingNumber = event.participants
             .where((p) => p.status == ParticipationStatus.waitlist)
             .map((p) => p.waitingNumber ?? 0)
-            .fold(0, (max, num) => num > max ? num : max);
+            .fold(0, (max, number) => number > max ? number : max);
 
         final updatedParticipants = event.participants.map((p) {
           if (p.userId == userId) {

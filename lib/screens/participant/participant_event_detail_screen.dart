@@ -321,11 +321,11 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(color: Colors.orange),
                               ),
-                              child: Row(
+                              child: const Row(
                                 children: [
-                                  const Icon(Icons.hourglass_empty, color: Colors.orange),
-                                  const SizedBox(width: 8),
-                                  const Expanded(
+                                  Icon(Icons.hourglass_empty, color: Colors.orange),
+                                  SizedBox(width: 8),
+                                  Expanded(
                                     child: Text(
                                       'キャンセル申請中',
                                       style: TextStyle(
@@ -667,26 +667,6 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
       }
     } catch (e) {
       // エラーは無視
-    }
-  }
-
-  Future<String> _getUserName(WidgetRef ref, String userId, dynamic circle) async {
-    try {
-      // サークルメンバーからdisplayNameを取得
-      if (circle != null) {
-        final members = circle.members.where((m) => m.userId == userId);
-        final member = members.isEmpty ? null : members.first;
-        if (member?.displayName != null) {
-          return member!.displayName!;
-        }
-      }
-
-      // displayNameがない場合はグローバル名を取得
-      final authService = ref.read(authServiceProvider);
-      final user = await authService.getUserData(userId);
-      return user?.name ?? 'ユーザー';
-    } catch (e) {
-      return 'ユーザー';
     }
   }
 

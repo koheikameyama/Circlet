@@ -118,16 +118,6 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
     }
   }
 
-  Future<String> _getMemberName(WidgetRef ref, String userId) async {
-    try {
-      final authService = ref.read(authServiceProvider);
-      final user = await authService.getUserData(userId);
-      return user?.name ?? userId;
-    } catch (e) {
-      return userId;
-    }
-  }
-
   // 招待リンクダイアログを表示
   void _showInviteLinkDialog(BuildContext context, String circleId) async {
     final circleService = CircleService();
@@ -1314,20 +1304,6 @@ class _AdminMembersTab extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// 管理者用通知タブ
-class _AdminNotificationsTab extends StatelessWidget {
-  final String circleId;
-
-  const _AdminNotificationsTab({required this.circleId});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('通知管理機能は準備中です'),
     );
   }
 }

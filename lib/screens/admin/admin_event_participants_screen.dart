@@ -212,7 +212,8 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
       width: double.infinity,
       child: DataTable(
         headingRowHeight: 36,
-        dataRowHeight: 48,
+        dataRowMinHeight: 48,
+        dataRowMaxHeight: 48,
         columnSpacing: 16,
         horizontalMargin: 0,
         headingRowColor: MaterialStateProperty.all(Colors.blue.shade50),
