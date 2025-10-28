@@ -49,16 +49,41 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
           onPressed: () => context.go('/circles'),
         ),
         actions: [
-          // 編集ボタン
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => _showEditCircleDialog(context, circleAsync.value),
-          ),
-          // 削除ボタン
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () =>
-                _showDeleteCircleDialog(context, circleAsync.value),
+          // 三点リーダーメニュー
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              switch (value) {
+                case 'edit':
+                  _showEditCircleDialog(context, circleAsync.value);
+                  break;
+                case 'delete':
+                  _showDeleteCircleDialog(context, circleAsync.value);
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, size: 20),
+                    SizedBox(width: 12),
+                    Text('サークル編集'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, size: 20, color: Colors.red),
+                    SizedBox(width: 12),
+                    Text('サークル削除', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -110,7 +135,6 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
           onPressed: () => _showInviteLinkDialog(context, widget.circleId),
           icon: const Icon(Icons.person_add),
           label: const Text('メンバー招待'),
-          backgroundColor: Colors.blue,
         );
       default:
         return null;

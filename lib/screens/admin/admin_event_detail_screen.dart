@@ -31,25 +31,49 @@ class AdminEventDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('イベント詳細'),
         actions: [
-          // 編集ボタン
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              if (eventAsync.value != null) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => AdminEventEditScreen(
-                      event: eventAsync.value!,
-                    ),
-                  ),
-                );
+          // 三点リーダーメニュー
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              switch (value) {
+                case 'edit':
+                  if (eventAsync.value != null) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => AdminEventEditScreen(
+                          event: eventAsync.value!,
+                        ),
+                      ),
+                    );
+                  }
+                  break;
+                case 'delete':
+                  _showDeleteDialog(context, ref);
+                  break;
               }
             },
-          ),
-          // 削除ボタン
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () => _showDeleteDialog(context, ref),
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, size: 20),
+                    SizedBox(width: 12),
+                    Text('イベント編集'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, size: 20, color: Colors.red),
+                    SizedBox(width: 12),
+                    Text('イベント削除', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
