@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'logger_service.dart';
 import 'package:uuid/uuid.dart';
 import '../models/event_model.dart';
 
@@ -45,7 +46,7 @@ class EventService {
 
       return eventId;
     } catch (e) {
-      print('Error creating event: $e');
+      AppLogger.error('Error creating event: $e');
       rethrow;
     }
   }
@@ -59,7 +60,7 @@ class EventService {
       }
       return null;
     } catch (e) {
-      print('Error getting event: $e');
+      AppLogger.error('Error getting event: $e');
       return null;
     }
   }
@@ -114,7 +115,7 @@ class EventService {
 
       await _firestore.collection('events').doc(eventId).update(updates);
     } catch (e) {
-      print('Error updating event: $e');
+      AppLogger.error('Error updating event: $e');
       rethrow;
     }
   }
@@ -147,7 +148,7 @@ class EventService {
         'updatedAt': Timestamp.now(),
       });
     } catch (e) {
-      print('Error joining event: $e');
+      AppLogger.error('Error joining event: $e');
       rethrow;
     }
   }
@@ -181,7 +182,7 @@ class EventService {
         'updatedAt': Timestamp.now(),
       });
     } catch (e) {
-      print('Error canceling event: $e');
+      AppLogger.error('Error canceling event: $e');
       rethrow;
     }
   }
@@ -305,7 +306,7 @@ class EventService {
         });
       }
     } catch (e) {
-      print('Error updating participant status: $e');
+      AppLogger.error('Error updating participant status: $e');
       rethrow;
     }
   }
@@ -325,7 +326,7 @@ class EventService {
       // イベントを削除
       await _firestore.collection('events').doc(eventId).delete();
     } catch (e) {
-      print('Error deleting event: $e');
+      AppLogger.error('Error deleting event: $e');
       rethrow;
     }
   }

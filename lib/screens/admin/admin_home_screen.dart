@@ -11,6 +11,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../models/event_model.dart';
 import '../../services/circle_service.dart';
+import '../../services/logger_service.dart';
 import 'admin_event_detail_screen.dart';
 import 'admin_event_create_screen.dart';
 
@@ -277,7 +278,7 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
       try {
         Navigator.pop(context);
       } catch (popError) {
-        print('Error closing dialog: $popError');
+        AppLogger.error('Error closing dialog: $popError');
       }
 
       // エラーメッセージを表示（詳細を含む）

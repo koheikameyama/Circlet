@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'logger_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:uuid/uuid.dart';
 import '../models/notification_model.dart';
@@ -38,18 +39,18 @@ class NotificationService {
         });
       }
     } catch (e) {
-      print('Error initializing notifications: $e');
+      AppLogger.error('Error initializing notifications: $e');
     }
   }
 
   // フォアグラウンドメッセージを処理
   void setupForegroundNotificationHandling() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Got a message whilst in the foreground!');
-      print('Message data: ${message.data}');
+      AppLogger.info('Got a message whilst in the foreground!');
+      AppLogger.info('Message data: ${message.data}');
 
       if (message.notification != null) {
-        print('Message also contained a notification: ${message.notification}');
+        AppLogger.info('Message also contained a notification: ${message.notification}');
       }
     });
   }
@@ -124,7 +125,7 @@ class NotificationService {
       // この実装では、Firestoreに通知レコードを作成し、
       // Cloud FunctionsのトリガーでFCMメッセージを送信する想定
     } catch (e) {
-      print('Error creating notification: $e');
+      AppLogger.error('Error creating notification: $e');
       rethrow;
     }
   }

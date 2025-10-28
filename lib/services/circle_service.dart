@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'logger_service.dart';
 import 'package:uuid/uuid.dart';
 import '../models/circle_model.dart';
 import '../models/invite_model.dart';
@@ -46,7 +47,7 @@ class CircleService {
 
       return circleId;
     } catch (e) {
-      print('Error creating circle: $e');
+      AppLogger.error('Error creating circle: $e');
       rethrow;
     }
   }
@@ -60,7 +61,7 @@ class CircleService {
       }
       return null;
     } catch (e) {
-      print('Error getting circle: $e');
+      AppLogger.error('Error getting circle: $e');
       return null;
     }
   }
@@ -130,7 +131,7 @@ class CircleService {
 
       await _firestore.collection('circles').doc(circleId).update(updates);
     } catch (e) {
-      print('Error updating circle: $e');
+      AppLogger.error('Error updating circle: $e');
       rethrow;
     }
   }
@@ -161,7 +162,7 @@ class CircleService {
         'updatedAt': Timestamp.now(),
       });
     } catch (e) {
-      print('Error adding member: $e');
+      AppLogger.error('Error adding member: $e');
       rethrow;
     }
   }
@@ -191,7 +192,7 @@ class CircleService {
         'updatedAt': Timestamp.now(),
       });
     } catch (e) {
-      print('Error removing member: $e');
+      AppLogger.error('Error removing member: $e');
       rethrow;
     }
   }
@@ -224,7 +225,7 @@ class CircleService {
         'updatedAt': Timestamp.now(),
       });
     } catch (e) {
-      print('Error updating member tags: $e');
+      AppLogger.error('Error updating member tags: $e');
       rethrow;
     }
   }
@@ -271,7 +272,7 @@ class CircleService {
         'updatedAt': Timestamp.now(),
       });
     } catch (e) {
-      print('Error updating member role: $e');
+      AppLogger.error('Error updating member role: $e');
       rethrow;
     }
   }
@@ -304,7 +305,7 @@ class CircleService {
         'updatedAt': Timestamp.now(),
       });
     } catch (e) {
-      print('Error updating member display name: $e');
+      AppLogger.error('Error updating member display name: $e');
       rethrow;
     }
   }
@@ -344,7 +345,7 @@ class CircleService {
       // サークルを削除
       await _firestore.collection('circles').doc(circleId).delete();
     } catch (e) {
-      print('Error deleting circle: $e');
+      AppLogger.error('Error deleting circle: $e');
       rethrow;
     }
   }
@@ -374,7 +375,7 @@ class CircleService {
 
       return invite;
     } catch (e) {
-      print('Error creating invite link: $e');
+      AppLogger.error('Error creating invite link: $e');
       rethrow;
     }
   }
@@ -390,7 +391,7 @@ class CircleService {
       final invite = InviteModel.fromFirestore(doc);
       return invite.isValid ? invite : null;
     } catch (e) {
-      print('Error validating invite: $e');
+      AppLogger.error('Error validating invite: $e');
       return null;
     }
   }
@@ -413,7 +414,7 @@ class CircleService {
         'circle': circle,
       };
     } catch (e) {
-      print('Error getting invite details: $e');
+      AppLogger.error('Error getting invite details: $e');
       return null;
     }
   }
@@ -427,19 +428,19 @@ class CircleService {
       // 招待リンクを検証
       final invite = await validateInvite(inviteId);
       if (invite == null) {
-        print('Invalid or expired invite');
+        AppLogger.info('Invalid or expired invite');
         return false;
       }
 
       // 既にメンバーかチェック
       final circle = await getCircle(invite.circleId);
       if (circle == null) {
-        print('Circle not found');
+        AppLogger.info('Circle not found');
         return false;
       }
 
       if (circle.isMember(userId)) {
-        print('User is already a member');
+        AppLogger.info('User is already a member');
         return true; // 既にメンバーなので成功として扱う
       }
 
@@ -452,7 +453,7 @@ class CircleService {
 
       return true;
     } catch (e) {
-      print('Error joining circle with invite: $e');
+      AppLogger.error('Error joining circle with invite: $e');
       return false;
     }
   }
@@ -464,7 +465,7 @@ class CircleService {
         'isActive': false,
       });
     } catch (e) {
-      print('Error deactivating invite: $e');
+      AppLogger.error('Error deactivating invite: $e');
       rethrow;
     }
   }
@@ -534,7 +535,7 @@ class CircleService {
         'updatedAt': Timestamp.now(),
       });
     } catch (e) {
-      print('Error adding dummy member: $e');
+      AppLogger.error('Error adding dummy member: $e');
       rethrow;
     }
   }

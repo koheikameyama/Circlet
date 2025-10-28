@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/circle_provider.dart';
+import '../../services/logger_service.dart';
 
 class CircleSelectionScreen extends ConsumerWidget {
   const CircleSelectionScreen({super.key});
@@ -71,7 +72,7 @@ class CircleSelectionScreen extends ConsumerWidget {
                   await authService.signOut();
                 } catch (e) {
                   // エラーが発生した場合でも、既に画面遷移しているので問題ない
-                  print('ログアウト時のエラー（無視されます）: $e');
+                  AppLogger.debug('ログアウト時のエラー（無視されます）: $e');
                 }
               }
             },

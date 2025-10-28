@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'logger_service.dart';
 import 'package:uni_links/uni_links.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'circle_service.dart';
@@ -46,7 +47,7 @@ class DeepLinkService {
         },
       );
     } catch (e) {
-      print('Error initializing deep links: $e');
+      AppLogger.error('Error initializing deep links: $e');
       onError('ディープリンクの初期化に失敗しました');
     }
   }
@@ -57,7 +58,7 @@ class DeepLinkService {
     Function(String inviteId) onInviteLink,
     Function(String error) onError,
   ) {
-    print('Deep link received: $uri');
+    AppLogger.info('Deep link received: $uri');
 
     // grumane://invite/{inviteId} の形式をチェック
     if (uri.scheme == 'grumane' && uri.host == 'invite') {
@@ -69,7 +70,7 @@ class DeepLinkService {
         onError('招待リンクの形式が正しくありません');
       }
     } else {
-      print('Unknown deep link format: $uri');
+      AppLogger.info('Unknown deep link format: $uri');
     }
   }
 
@@ -78,7 +79,7 @@ class DeepLinkService {
     try {
       final userId = authService.currentUser?.uid;
       if (userId == null) {
-        print('User not logged in');
+        AppLogger.info('User not logged in');
         return false;
       }
 
@@ -89,7 +90,7 @@ class DeepLinkService {
 
       return success;
     } catch (e) {
-      print('Error handling invite link: $e');
+      AppLogger.error('Error handling invite link: $e');
       return false;
     }
   }

@@ -1,4 +1,5 @@
 import 'package:device_calendar/device_calendar.dart';
+import 'logger_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/timezone.dart' as tz;
 import '../models/event_model.dart';
@@ -12,7 +13,7 @@ class CalendarService {
       final permissionStatus = await Permission.calendar.request();
       return permissionStatus.isGranted;
     } catch (e) {
-      print('Error requesting calendar permission: $e');
+      AppLogger.error('Error requesting calendar permission: $e');
       return false;
     }
   }
@@ -22,14 +23,14 @@ class CalendarService {
     try {
       final hasPermission = await requestCalendarPermission();
       if (!hasPermission) {
-        print('Calendar permission denied');
+        AppLogger.info('Calendar permission denied');
         return [];
       }
 
       final calendarsResult = await _deviceCalendarPlugin.retrieveCalendars();
       return calendarsResult.data ?? [];
     } catch (e) {
-      print('Error getting calendars: $e');
+      AppLogger.error('Error getting calendars: $e');
       return [];
     }
   }
@@ -48,7 +49,7 @@ class CalendarService {
 
       return defaultCalendar;
     } catch (e) {
-      print('Error getting default calendar: $e');
+      AppLogger.error('Error getting default calendar: $e');
       return null;
     }
   }
@@ -61,7 +62,7 @@ class CalendarService {
     try {
       final hasPermission = await requestCalendarPermission();
       if (!hasPermission) {
-        print('Calendar permission denied');
+        AppLogger.info('Calendar permission denied');
         return null;
       }
 
@@ -70,7 +71,7 @@ class CalendarService {
       if (targetCalendarId == null) {
         final defaultCalendar = await getDefaultCalendar();
         if (defaultCalendar == null) {
-          print('No calendar available');
+          AppLogger.info('No calendar available');
           return null;
         }
         targetCalendarId = defaultCalendar.id;
@@ -95,11 +96,11 @@ class CalendarService {
       if (createEventResult?.isSuccess ?? false) {
         return createEventResult!.data;
       } else {
-        print('Failed to create calendar event');
+        AppLogger.error('Failed to create calendar event');
         return null;
       }
     } catch (e) {
-      print('Error adding event to calendar: $e');
+      AppLogger.error('Error adding event to calendar: $e');
       return null;
     }
   }
@@ -112,7 +113,7 @@ class CalendarService {
     try {
       final hasPermission = await requestCalendarPermission();
       if (!hasPermission) {
-        print('Calendar permission denied');
+        AppLogger.info('Calendar permission denied');
         return false;
       }
 
@@ -123,7 +124,7 @@ class CalendarService {
 
       return deleteResult.isSuccess;
     } catch (e) {
-      print('Error deleting event from calendar: $e');
+      AppLogger.error('Error deleting event from calendar: $e');
       return false;
     }
   }
@@ -137,7 +138,7 @@ class CalendarService {
     try {
       final hasPermission = await requestCalendarPermission();
       if (!hasPermission) {
-        print('Calendar permission denied');
+        AppLogger.info('Calendar permission denied');
         return false;
       }
 
@@ -160,7 +161,7 @@ class CalendarService {
 
       return updateResult?.isSuccess ?? false;
     } catch (e) {
-      print('Error updating event in calendar: $e');
+      AppLogger.error('Error updating event in calendar: $e');
       return false;
     }
   }

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'logger_service.dart';
 import 'package:uuid/uuid.dart';
 import '../models/payment_model.dart';
 
@@ -35,7 +36,7 @@ class PaymentService {
 
       return paymentId;
     } catch (e) {
-      print('Error creating payment: $e');
+      AppLogger.error('Error creating payment: $e');
       rethrow;
     }
   }
@@ -49,7 +50,7 @@ class PaymentService {
       }
       return null;
     } catch (e) {
-      print('Error getting payment: $e');
+      AppLogger.error('Error getting payment: $e');
       return null;
     }
   }
@@ -109,7 +110,7 @@ class PaymentService {
 
       return paymentUrl;
     } catch (e) {
-      print('Error initiating PayPay payment: $e');
+      AppLogger.error('Error initiating PayPay payment: $e');
       return null;
     }
   }
@@ -136,7 +137,7 @@ class PaymentService {
 
       await _firestore.collection('payments').doc(paymentId).update(updates);
     } catch (e) {
-      print('Error updating payment status: $e');
+      AppLogger.error('Error updating payment status: $e');
       rethrow;
     }
   }
@@ -175,7 +176,7 @@ class PaymentService {
         );
       }
     } catch (e) {
-      print('Error handling PayPay webhook: $e');
+      AppLogger.error('Error handling PayPay webhook: $e');
       rethrow;
     }
   }
@@ -198,7 +199,7 @@ class PaymentService {
       }
       return null;
     } catch (e) {
-      print('Error getting user event payment: $e');
+      AppLogger.error('Error getting user event payment: $e');
       return null;
     }
   }

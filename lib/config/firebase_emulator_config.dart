@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../services/logger_service.dart';
 
 /// Firebase Emulatorに接続するための設定
 class FirebaseEmulatorConfig {
@@ -20,6 +21,6 @@ class FirebaseEmulatorConfig {
     // Storage Emulator
     FirebaseStorage.instance.useStorageEmulator(emulatorHost, 9199);
 
-    print('🔧 Firebase Emulator に接続しました');
+    AppLogger.info('🔧 Firebase Emulator に接続しました');
   }
 }

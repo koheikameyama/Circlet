@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'logger_service.dart';
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
@@ -31,7 +32,7 @@ class AuthService {
       final email = '$lineUserId@line.user';
       final password = lineUserId; // シンプルにLINE User IDをパスワードとして使用
 
-      print('Attempting LINE login with email: $email');
+      AppLogger.info('Attempting LINE login with email: $email');
 
       // 既存の匿名認証ユーザーをチェック（移行用）
       final existingAnonymousUser = await _findUserByLineId(lineUserId);
@@ -44,7 +45,7 @@ class AuthService {
           email: email,
           password: password,
         );
-        print('Signed in with existing email/password account');
+        AppLogger.info('Signed in with existing email/password account');
 
         // ユーザー情報を最新に更新
         await _saveUserToFirestore(
@@ -54,18 +55,18 @@ class AuthService {
           profileImageUrl: profileImageUrl,
         );
       } catch (e) {
-        print('No existing email/password account, creating new one: $e');
+        AppLogger.info('No existing email/password account, creating new one: $e');
 
         // アカウントが存在しない場合、新規作成
         credential = await _auth.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
-        print('Created new email/password account: ${credential.user!.uid}');
+        AppLogger.info('Created new email/password account: ${credential.user!.uid}');
 
         // 既存の匿名認証ユーザーがいる場合、データを移行
         if (existingAnonymousUser != null) {
-          print('Migrating data from anonymous user: ${existingAnonymousUser.userId}');
+          AppLogger.info('Migrating data from anonymous user: ${existingAnonymousUser.userId}');
           await _migrateUserData(
             oldUserId: existingAnonymousUser.userId,
             newUserId: credential.user!.uid,
@@ -87,7 +88,7 @@ class AuthService {
 
       return credential;
     } catch (e) {
-      print('LINE login error: $e');
+      AppLogger.error('LINE login error: $e');
       return null;
     }
   }
@@ -109,7 +110,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error finding user by LINE ID: $e');
+      AppLogger.error('Error finding user by LINE ID: $e');
       // エラーが発生した場合、もう一度試行
       try {
         await Future.delayed(const Duration(milliseconds: 1000));
@@ -122,7 +123,7 @@ class AuthService {
           return UserModel.fromFirestore(retrySnapshot.docs.first);
         }
       } catch (retryError) {
-        print('Retry also failed: $retryError');
+        AppLogger.error('Retry also failed: $retryError');
       }
       return null;
     }
@@ -138,7 +139,7 @@ class AuthService {
     required List<String> circleIds,
   }) async {
     try {
-      print('Migrating user data from $oldUserId to $newUserId');
+      AppLogger.info('Migrating user data from $oldUserId to $newUserId');
 
       // 新しいFirebase UIDでユーザーデータを作成
       final user = UserModel(
@@ -167,9 +168,9 @@ class AuthService {
       // 古いユーザーデータを削除
       await _firestore.collection('users').doc(oldUserId).delete();
 
-      print('User data migration completed');
+      AppLogger.info('User data migration completed');
     } catch (e) {
-      print('Error migrating user data: $e');
+      AppLogger.error('Error migrating user data: $e');
       rethrow;
     }
   }
@@ -206,7 +207,7 @@ class AuthService {
         'updatedAt': Timestamp.now(),
       });
     } catch (e) {
-      print('Error updating circle member: $e');
+      AppLogger.error('Error updating circle member: $e');
     }
   }
 
@@ -247,7 +248,7 @@ class AuthService {
               'participants': updatedParticipants,
               'updatedAt': Timestamp.now(),
             });
-            print('Updated event ${eventDoc.id} participants');
+            AppLogger.info('Updated event ${eventDoc.id} participants');
           }
         }
       } else {
@@ -273,7 +274,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      print('Error updating event participants: $e');
+      AppLogger.error('Error updating event participants: $e');
     }
   }
 
@@ -297,9 +298,9 @@ class AuthService {
         });
       }
 
-      print('Updated ${paymentsQuery.docs.length} payment records');
+      AppLogger.info('Updated ${paymentsQuery.docs.length} payment records');
     } catch (e) {
-      print('Error updating payments: $e');
+      AppLogger.error('Error updating payments: $e');
     }
   }
 
@@ -344,7 +345,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error getting user data: $e');
+      AppLogger.error('Error getting user data: $e');
       return null;
     }
   }
@@ -364,7 +365,7 @@ class AuthService {
       await LineSDK.instance.logout();
       await _auth.signOut();
     } catch (e) {
-      print('Sign out error: $e');
+      AppLogger.error('Sign out error: $e');
     }
   }
 
@@ -380,7 +381,7 @@ class AuthService {
         await currentUser?.delete();
       }
     } catch (e) {
-      print('Delete account error: $e');
+      AppLogger.error('Delete account error: $e');
       rethrow;
     }
   }
@@ -399,9 +400,9 @@ class AuthService {
         'createdAt': Timestamp.now(),
         'updatedAt': Timestamp.now(),
       });
-      print('Created dummy user: $name ($userId)');
+      AppLogger.info('Created dummy user: $name ($userId)');
     } catch (e) {
-      print('Error creating dummy user: $e');
+      AppLogger.error('Error creating dummy user: $e');
       rethrow;
     }
   }
@@ -423,9 +424,9 @@ class AuthService {
       if (email != null) updates['email'] = email;
 
       await _firestore.collection('users').doc(userId).update(updates);
-      print('User profile updated: $userId');
+      AppLogger.info('User profile updated: $userId');
     } catch (e) {
-      print('Error updating user profile: $e');
+      AppLogger.error('Error updating user profile: $e');
       rethrow;
     }
   }

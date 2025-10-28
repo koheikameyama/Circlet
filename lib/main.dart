@@ -10,6 +10,7 @@ import 'config/firebase_emulator_config.dart';
 import 'providers/auth_provider.dart';
 import 'services/deep_link_service.dart';
 import 'services/circle_service.dart';
+import 'services/logger_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/circle_selection_screen.dart';
 import 'screens/participant/participant_home_screen.dart';
@@ -121,7 +122,7 @@ class _GrumaneAppState extends ConsumerState<GrumaneApp> {
     _deepLinkService = ref.read(deepLinkServiceProvider);
     _deepLinkService?.initDeepLinks(
       onInviteLink: (inviteId) async {
-        print('Invite link received: $inviteId');
+        AppLogger.info('Invite link received: $inviteId');
 
         // ログインしているかチェック
         final currentUser = _deepLinkService?.authService.currentUser;
@@ -142,7 +143,7 @@ class _GrumaneAppState extends ConsumerState<GrumaneApp> {
       },
       onError: (error) {
         // エラーはコンソールにのみ出力（UIは使わない）
-        print('Deep link error: $error');
+        AppLogger.error('Deep link error: $error');
       },
     );
   }
@@ -153,7 +154,7 @@ class _GrumaneAppState extends ConsumerState<GrumaneApp> {
     final navContext = navigatorKey.currentContext;
 
     if (navContext == null || !navContext.mounted) {
-      print('Navigator context not available');
+      AppLogger.warning('Navigator context not available');
       return;
     }
 
