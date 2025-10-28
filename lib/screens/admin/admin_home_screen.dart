@@ -914,15 +914,24 @@ class _AdminMembersTab extends ConsumerWidget {
           return const Center(child: Text('サークルが見つかりません'));
         }
 
+        // メンバーをソート: 管理者を上に、メンバーを下に
+        final sortedMembers = List.from(circle.members)
+          ..sort((a, b) {
+            // 管理者を優先
+            if (a.role == 'admin' && b.role != 'admin') return -1;
+            if (a.role != 'admin' && b.role == 'admin') return 1;
+            return 0;
+          });
+
         return Column(
           children: [
             // メンバーリスト
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: circle.members.length,
+                itemCount: sortedMembers.length,
                 itemBuilder: (context, index) {
-                  final member = circle.members[index];
+                  final member = sortedMembers[index];
                   final isAdmin = member.role == 'admin';
                   final currentUser = ref.watch(authStateProvider).value;
                   final isCurrentUser = currentUser?.uid == member.userId;
