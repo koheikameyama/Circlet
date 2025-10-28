@@ -160,26 +160,31 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
   Widget _buildParticipantItem(WidgetRef ref, EventParticipant participant, dynamic circle) {
     return FutureBuilder<String>(
       future: _getUserName(ref, participant.userId, circle),
-      builder: (context, snapshot) {
-        final name = snapshot.data ?? participant.userId;
+      builder: (context, nameSnapshot) {
+        final name = nameSnapshot.data ?? participant.userId;
         final isGuest = participant.userId.startsWith('guest_');
-        final profileImageUrl = _getUserProfileImageUrl(participant.userId, circle);
 
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(vertical: 4),
-          leading: CircleAvatar(
-            backgroundColor: Colors.grey,
-            backgroundImage: profileImageUrl != null
-                ? CachedNetworkImageProvider(profileImageUrl)
-                : null,
-            child: profileImageUrl == null
-                ? const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                  )
-                : null,
-          ),
+        return FutureBuilder<String?>(
+          future: _getUserProfileImageUrl(ref, participant.userId, circle),
+          builder: (context, imageSnapshot) {
+            final profileImageUrl = imageSnapshot.data;
+
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              leading: CircleAvatar(
+                backgroundColor: Colors.grey,
+                backgroundImage: profileImageUrl != null && profileImageUrl.isNotEmpty
+                    ? CachedNetworkImageProvider(profileImageUrl)
+                    : null,
+                child: profileImageUrl == null || profileImageUrl.isEmpty
+                    ? const Icon(
+                        Icons.person,
+                        color: Colors.white,
+                      )
+                    : null,
+              ),
           title: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Flexible(
                 child: Text(
@@ -231,6 +236,8 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
               ),
             ),
           ),
+            );
+          },
         );
       },
     );
@@ -256,14 +263,21 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
     }
   }
 
-  String? _getUserProfileImageUrl(String userId, dynamic circle) {
+  Future<String?> _getUserProfileImageUrl(WidgetRef ref, String userId, dynamic circle) async {
     try {
+      // サークル用のプロフィール画像をチェック
       if (circle != null) {
         final members = circle.members.where((m) => m.userId == userId);
         final member = members.isEmpty ? null : members.first;
-        return member?.profileImageUrl;
+        if (member?.profileImageUrl != null) {
+          return member!.profileImageUrl;
+        }
       }
-      return null;
+
+      // なければグローバルなプロフィール画像を取得
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.getUserData(userId);
+      return user?.profileImageUrl;
     } catch (e) {
       return null;
     }

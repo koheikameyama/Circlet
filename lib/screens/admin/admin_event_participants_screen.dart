@@ -267,60 +267,65 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
             cells: [
               // 名前
               DataCell(
-                Center(
-                  child: FutureBuilder<String>(
-                    future: _getUserName(ref, participant.userId, circle),
-                    builder: (context, snapshot) {
-                      final isGuest = participant.userId.startsWith('guest_');
-                      final profileImageUrl =
-                          _getUserProfileImageUrl(participant.userId, circle);
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: Colors.grey,
-                            backgroundImage: profileImageUrl != null
-                                ? CachedNetworkImageProvider(profileImageUrl)
-                                : null,
-                            child: profileImageUrl == null
-                                ? const Icon(
-                                    Icons.person,
-                                    size: 16,
-                                    color: Colors.white,
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              snapshot.data ?? participant.userId,
-                              style: const TextStyle(fontSize: 13),
-                              overflow: TextOverflow.ellipsis,
+                FutureBuilder<String>(
+                  future: _getUserName(ref, participant.userId, circle),
+                  builder: (context, nameSnapshot) {
+                    final isGuest = participant.userId.startsWith('guest_');
+
+                    return FutureBuilder<String?>(
+                      future: _getUserProfileImageUrl(ref, participant.userId, circle),
+                      builder: (context, imageSnapshot) {
+                        final profileImageUrl = imageSnapshot.data;
+
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: Colors.grey,
+                              backgroundImage: profileImageUrl != null && profileImageUrl.isNotEmpty
+                                  ? CachedNetworkImageProvider(profileImageUrl)
+                                  : null,
+                              child: profileImageUrl == null || profileImageUrl.isEmpty
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 16,
+                                      color: Colors.white,
+                                    )
+                                  : null,
                             ),
-                          ),
-                          if (isGuest) ...[
-                            const SizedBox(width: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.purple.shade100,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
+                            const SizedBox(width: 8),
+                            Flexible(
                               child: Text(
-                                'ゲスト',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.purple.shade800,
-                                ),
+                                nameSnapshot.data ?? participant.userId,
+                                style: const TextStyle(fontSize: 13),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ],
+                        if (isGuest) ...[
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade100,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'ゲスト',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.purple.shade800,
+                              ),
+                            ),
+                          ),
                         ],
-                      );
-                    },
-                  ),
+                          ],
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
               // 参加ステータス
@@ -436,14 +441,21 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
     }
   }
 
-  String? _getUserProfileImageUrl(String userId, dynamic circle) {
+  Future<String?> _getUserProfileImageUrl(WidgetRef ref, String userId, dynamic circle) async {
     try {
+      // サークル用のプロフィール画像をチェック
       if (circle != null) {
         final members = circle.members.where((m) => m.userId == userId);
         final member = members.isEmpty ? null : members.first;
-        return member?.profileImageUrl;
+        if (member?.profileImageUrl != null) {
+          return member!.profileImageUrl;
+        }
       }
-      return null;
+
+      // なければグローバルなプロフィール画像を取得
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.getUserData(userId);
+      return user?.profileImageUrl;
     } catch (e) {
       return null;
     }

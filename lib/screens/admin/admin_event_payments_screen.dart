@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/event_model.dart';
@@ -273,10 +274,15 @@ class _PaymentParticipantRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return FutureBuilder<String>(
       future: _getUserName(ref, participant.userId, circle),
-      builder: (context, snapshot) {
-        final userName = snapshot.data ?? participant.userId;
+      builder: (context, nameSnapshot) {
+        final userName = nameSnapshot.data ?? participant.userId;
 
-        return InkWell(
+        return FutureBuilder<String?>(
+          future: _getUserProfileImageUrl(ref, participant.userId, circle),
+          builder: (context, imageSnapshot) {
+            final profileImageUrl = imageSnapshot.data;
+
+            return InkWell(
           onTap: () {
             if (!payment.isPaid) {
               _markAsPaidOrCreate(
@@ -306,6 +312,7 @@ class _PaymentParticipantRow extends ConsumerWidget {
               ),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Checkbox(
                   value: payment.isPaid,
@@ -329,8 +336,24 @@ class _PaymentParticipantRow extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(width: 8),
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.grey,
+                  backgroundImage: profileImageUrl != null && profileImageUrl.isNotEmpty
+                      ? CachedNetworkImageProvider(profileImageUrl)
+                      : null,
+                  child: profileImageUrl == null || profileImageUrl.isEmpty
+                      ? const Icon(
+                          Icons.person,
+                          size: 16,
+                          color: Colors.white,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Flexible(
                         child: Text(
@@ -379,6 +402,8 @@ class _PaymentParticipantRow extends ConsumerWidget {
               ],
             ),
           ),
+            );
+          },
         );
       },
     );
@@ -401,6 +426,26 @@ class _PaymentParticipantRow extends ConsumerWidget {
       return user?.name ?? userId;
     } catch (e) {
       return userId;
+    }
+  }
+
+  Future<String?> _getUserProfileImageUrl(WidgetRef ref, String userId, dynamic circle) async {
+    try {
+      // サークル用のプロフィール画像をチェック
+      if (circle != null) {
+        final members = circle.members.where((m) => m.userId == userId);
+        final member = members.isEmpty ? null : members.first;
+        if (member?.profileImageUrl != null) {
+          return member!.profileImageUrl;
+        }
+      }
+
+      // なければグローバルなプロフィール画像を取得
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.getUserData(userId);
+      return user?.profileImageUrl;
+    } catch (e) {
+      return null;
     }
   }
 
