@@ -41,14 +41,6 @@ class _ParticipantHomeScreenState extends ConsumerState<ParticipantHomeScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/circles'),
         ),
-        actions: [
-          // デバッグ用：イベント自動作成ボタン
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'イベント自動作成（デバッグ）',
-            onPressed: () => _autoCreateEvent(context),
-          ),
-        ],
       ),
       body: _buildBody(),
       bottomNavigationBar: NavigationBar(
@@ -86,43 +78,6 @@ class _ParticipantHomeScreenState extends ConsumerState<ParticipantHomeScreen> {
         return _ProfileTab(circleId: widget.circleId);
       default:
         return const SizedBox.shrink();
-    }
-  }
-
-  Future<void> _autoCreateEvent(BuildContext context) async {
-    final now = DateTime.now();
-    final eventName = 'テストイベント_${now.hour}${now.minute}${now.second}';
-    final eventDate = now.add(const Duration(days: 3));
-
-    try {
-      final createEvent = ref.read(createEventProvider);
-      await createEvent(
-        circleId: widget.circleId,
-        name: eventName,
-        description: 'デバッグ用に自動作成されたイベント',
-        datetime: eventDate,
-        location: 'テスト会場',
-        maxParticipants: '10',
-        fee: '1000',
-      );
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('「$eventName」を作成しました'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('イベントの作成に失敗しました: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 }
@@ -187,15 +142,6 @@ class _EventListTabState extends ConsumerState<_EventListTab> {
                       fontSize: 18,
                       color: Colors.grey,
                     ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '右上の+ボタンからテストイベントを作成できます',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
