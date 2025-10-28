@@ -46,11 +46,6 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
           onPressed: () => context.go('/circles'),
         ),
         actions: [
-          // 招待リンク生成ボタン
-          IconButton(
-            icon: const Icon(Icons.person_add),
-            onPressed: () => _showInviteLinkDialog(context, widget.circleId),
-          ),
           // 編集ボタン
           IconButton(
             icon: const Icon(Icons.edit),
@@ -87,22 +82,36 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => AdminEventCreateScreen(
-                      circleId: widget.circleId,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('イベント作成'),
-            )
-          : null,
+      floatingActionButton: _buildFloatingActionButton(),
     );
+  }
+
+  Widget? _buildFloatingActionButton() {
+    switch (_selectedIndex) {
+      case 0: // イベントタブ
+        return FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => AdminEventCreateScreen(
+                  circleId: widget.circleId,
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Icons.add),
+          label: const Text('イベント作成'),
+        );
+      case 1: // メンバータブ
+        return FloatingActionButton.extended(
+          onPressed: () => _showInviteLinkDialog(context, widget.circleId),
+          icon: const Icon(Icons.person_add),
+          label: const Text('メンバー招待'),
+          backgroundColor: Colors.blue,
+        );
+      default:
+        return null;
+    }
   }
 
   Widget _buildBody() {
@@ -904,24 +913,6 @@ class _AdminMembersTab extends ConsumerWidget {
 
         return Column(
           children: [
-            // デバッグ用：ダミーメンバー追加ボタン
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Card(
-                color: Colors.orange.shade50,
-                child: ListTile(
-                  leading: const Icon(Icons.bug_report, color: Colors.orange),
-                  title: const Text('デバッグ: テストメンバー追加'),
-                  trailing: ElevatedButton.icon(
-                    onPressed: () => _addDummyMembers(context, ref, circleId),
-                    icon: const Icon(Icons.person_add),
-                    label: const Text('追加'),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-
             // メンバーリスト
             Expanded(
               child: ListView.builder(
@@ -1140,40 +1131,6 @@ class _AdminMembersTab extends ConsumerWidget {
       return user?.name ?? userId;
     } catch (e) {
       return userId;
-    }
-  }
-
-  Future<void> _addDummyMembers(
-      BuildContext context, WidgetRef ref, String circleId) async {
-    final dummyNames = ['田中太郎', '佐藤花子', '鈴木一郎', '高橋次郎', '伊藤美咲'];
-
-    try {
-      final circleService = ref.read(circleServiceProvider);
-
-      for (final name in dummyNames) {
-        await circleService.addDummyMember(
-          circleId: circleId,
-          name: name,
-        );
-      }
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${dummyNames.length}人のテストメンバーを追加しました'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('追加に失敗しました: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
