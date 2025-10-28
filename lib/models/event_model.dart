@@ -107,9 +107,7 @@ class EventModel {
           : null,
       location: data['location'],
       maxParticipants: data['maxParticipants'] ?? 0,
-      fee: data['fee'] != null
-          ? (data['fee'] is int ? data['fee'].toString() : data['fee'] as String?)
-          : null,
+      fee: data['fee'] as String?,
       participants: (data['participants'] as List<dynamic>?)
               ?.map((p) => EventParticipant.fromMap(p as Map<String, dynamic>))
               .toList() ??
