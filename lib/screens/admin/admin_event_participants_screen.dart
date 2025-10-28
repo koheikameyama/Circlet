@@ -68,7 +68,7 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                               const Icon(Icons.people, size: 16, color: Colors.grey),
                               const SizedBox(width: 4),
                               Text(
-                                '参加確定: ${event.confirmedCount}/${event.maxParticipants}人',
+                                '参加予定: ${event.confirmedCount}/${event.maxParticipants}人',
                                 style: const TextStyle(fontSize: 14),
                               ),
                               if (event.waitlistCount > 0) ...[
@@ -195,10 +195,10 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
   }
 
   Widget _buildParticipantsTable(BuildContext context, WidgetRef ref, EventModel event, dynamic circle) {
-    // 参加者をソート（参加確定を先に、キャンセル待ちを後に）
+    // 参加者をソート（参加予定を先に、キャンセル待ちを後に）
     final sortedParticipants = List<EventParticipant>.from(event.participants)
       ..sort((a, b) {
-        // 参加確定を先に、キャンセル待ちを後に
+        // 参加予定を先に、キャンセル待ちを後に
         if (a.status == ParticipationStatus.confirmed && b.status != ParticipationStatus.confirmed) {
           return -1;
         } else if (a.status != ParticipationStatus.confirmed && b.status == ParticipationStatus.confirmed) {
@@ -341,7 +341,7 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                     child: Text(
                       participant.status ==
                               ParticipationStatus.confirmed
-                          ? '参加確定'
+                          ? '参加予定'
                           : 'キャンセル待ち',
                       style: TextStyle(
                         fontSize: 11,
@@ -378,13 +378,13 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                             children: [
                               Icon(Icons.check_circle, color: Colors.green, size: 18),
                               SizedBox(width: 8),
-                              Text('参加確定に変更'),
+                              Text('参加予定に変更'),
                             ],
                           ),
                         ),
                       // 定員以上の場合のみキャンセル待ちに変更を表示
                       if (participant.status != ParticipationStatus.waitlist &&
-                          event.confirmedCount >= event.maxParticipants)
+                          event.isFull)
                         const PopupMenuItem<ParticipationStatus>(
                           value: ParticipationStatus.waitlist,
                           child: Row(
@@ -460,7 +460,7 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
   ) async {
     final userName = await _getUserName(ref, userId, circle);
     final statusText = newStatus == ParticipationStatus.confirmed
-        ? '参加確定'
+        ? '参加予定'
         : newStatus == ParticipationStatus.waitlist
             ? 'キャンセル待ち'
             : 'キャンセル';

@@ -57,7 +57,7 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
                           const Icon(Icons.people, size: 16, color: Colors.grey),
                           const SizedBox(width: 4),
                           Text(
-                            '参加確定: ${event.confirmedCount}/${event.maxParticipants}人',
+                            '参加予定: ${event.confirmedCount}/${event.maxParticipants}人',
                             style: const TextStyle(fontSize: 14),
                           ),
                           if (event.waitlistCount > 0) ...[
@@ -126,10 +126,10 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
             else
               Builder(
                 builder: (context) {
-                  // 参加者をステータス順にソート（参加確定 → キャンセル待ち）
+                  // 参加者をステータス順にソート（参加予定 → キャンセル待ち）
                   final sortedParticipants = List<EventParticipant>.from(event.participants)
                     ..sort((a, b) {
-                      // 参加確定を先に、キャンセル待ちを後に
+                      // 参加予定を先に、キャンセル待ちを後に
                       if (a.status == ParticipationStatus.confirmed && b.status != ParticipationStatus.confirmed) {
                         return -1;
                       } else if (a.status != ParticipationStatus.confirmed && b.status == ParticipationStatus.confirmed) {
@@ -220,7 +220,7 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
             ),
             child: Text(
               participant.status == ParticipationStatus.confirmed
-                  ? '参加確定'
+                  ? '参加予定'
                   : 'キャンセル待ち',
               style: TextStyle(
                 fontSize: 12,

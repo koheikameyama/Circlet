@@ -146,7 +146,9 @@ class AdminEventDetailScreen extends ConsumerWidget {
                           const Icon(Icons.people, color: Colors.white70, size: 18),
                           const SizedBox(width: 8),
                           Text(
-                            '定員: ${event.confirmedCount}/${event.maxParticipants}人',
+                            event.isMaxParticipantsNumeric
+                                ? '定員: ${event.confirmedCount}/${event.maxParticipants}人'
+                                : '定員: ${event.maxParticipants ?? "制限なし"}',
                             style: const TextStyle(
                               fontSize: 16,
                               color: Colors.white70,
@@ -213,8 +215,10 @@ class AdminEventDetailScreen extends ConsumerWidget {
                             children: [
                               Expanded(
                                 child: _buildStatusItem(
-                                  '参加確定',
-                                  '${event.confirmedCount}/${event.maxParticipants}人',
+                                  '参加予定',
+                                  event.isMaxParticipantsNumeric
+                                      ? '${event.confirmedCount}/${event.maxParticipants}人'
+                                      : '${event.confirmedCount}人',
                                   Colors.green,
                                   Icons.check_circle,
                                 ),
@@ -675,7 +679,7 @@ class AdminEventDetailScreen extends ConsumerWidget {
                         Expanded(
                           child: _buildParticipantSummary(
                             context,
-                            '参加確定',
+                            '参加予定',
                             '${event.confirmedCount}人',
                             Colors.green,
                           ),

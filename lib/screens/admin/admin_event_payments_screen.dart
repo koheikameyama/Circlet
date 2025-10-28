@@ -136,7 +136,7 @@ class AdminEventPaymentsScreen extends ConsumerWidget {
                 padding: EdgeInsets.all(16),
                 child: Center(
                   child: Text(
-                    '参加確定者がいません',
+                    '参加予定者がいません',
                     style: TextStyle(color: Colors.grey),
                   ),
                 ),

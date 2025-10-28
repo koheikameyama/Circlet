@@ -17,7 +17,7 @@ class EventService {
     DateTime? publishDatetime,
     DateTime? cancellationDeadline,
     String? location,
-    required int maxParticipants,
+    String? maxParticipants,
     String? fee,
   }) async {
     try {
@@ -95,7 +95,7 @@ class EventService {
     DateTime? publishDatetime,
     DateTime? cancellationDeadline,
     String? location,
-    int? maxParticipants,
+    String? maxParticipants,
     String? fee,
   }) async {
     try {
@@ -166,7 +166,7 @@ class EventService {
         (p) => p.userId == userId,
       );
 
-      // 参加確定者がキャンセルした場合、キャンセル待ちから繰り上げ
+      // 参加予定者がキャンセルした場合、キャンセル待ちから繰り上げ
       if (participant.status == ParticipationStatus.confirmed) {
         await _promoteFromWaitlist(eventId, event);
       }
@@ -249,7 +249,7 @@ class EventService {
         return;
       }
 
-      // 確定→キャンセル待ちの場合
+      // 参加予定→キャンセル待ちの場合
       if (oldStatus == ParticipationStatus.confirmed &&
           newStatus == ParticipationStatus.waitlist) {
         // 次のキャンセル待ち番号を取得
@@ -278,8 +278,8 @@ class EventService {
       // キャンセル待ち→確定の場合
       else if (oldStatus == ParticipationStatus.waitlist &&
           newStatus == ParticipationStatus.confirmed) {
-        // 定員チェック
-        if (event.confirmedCount >= event.maxParticipants) {
+        // 定員チェック（数値の場合のみ）
+        if (event.isFull) {
           throw Exception('定員に達しているため、確定にできません');
         }
 

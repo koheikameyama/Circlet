@@ -102,7 +102,7 @@ class _ParticipantHomeScreenState extends ConsumerState<ParticipantHomeScreen> {
         description: 'デバッグ用に自動作成されたイベント',
         datetime: eventDate,
         location: 'テスト会場',
-        maxParticipants: 10,
+        maxParticipants: '10',
         fee: '1000',
       );
 
@@ -447,7 +447,7 @@ class _ParticipantEventCard extends ConsumerWidget {
                                 Text(
                                   isParticipating
                                       ? '参加中'
-                                      : '${event.confirmedCount}/${event.maxParticipants}人',
+                                      : '${event.confirmedCount}/${event.maxParticipants}${event.isMaxParticipantsNumeric ? "人" : ""}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isParticipating

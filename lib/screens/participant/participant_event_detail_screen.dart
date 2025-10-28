@@ -49,7 +49,7 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
             ),
           );
           final isParticipating = userParticipation.userId.isNotEmpty;
-          final hasCapacity = event.confirmedCount < event.maxParticipants;
+          final hasCapacity = !event.isFull;
           final canJoin = event.isPublished && hasCapacity;
 
           return SingleChildScrollView(
@@ -156,7 +156,9 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
             ),
           _buildInfoRow(
             Icons.people,
-            '定員: ${event.confirmedCount}/${event.maxParticipants}人',
+            event.isMaxParticipantsNumeric
+                ? '定員: ${event.confirmedCount}/${event.maxParticipants}人'
+                : '定員: ${event.maxParticipants ?? "制限なし"}',
           ),
           if (event.waitlistCount > 0)
             _buildInfoRow(
@@ -247,7 +249,7 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Text(
                     userParticipation.status == ParticipationStatus.confirmed
-                        ? '参加確定しています'
+                        ? '参加予定です'
                         : 'キャンセル待ちです',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -536,7 +538,7 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
                   Expanded(
                     child: _buildParticipantSummary(
                       context,
-                      '参加確定',
+                      '参加予定',
                       '${event.confirmedCount}人',
                       Colors.green,
                     ),

@@ -729,7 +729,7 @@ class _AdminEventCard extends ConsumerWidget {
                                 Text(
                                   isParticipating
                                       ? '参加中'
-                                      : '${event.confirmedCount}/${event.maxParticipants}人',
+                                      : '${event.confirmedCount}/${event.maxParticipants}${event.isMaxParticipantsNumeric ? "人" : ""}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isParticipating

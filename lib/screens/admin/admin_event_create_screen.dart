@@ -183,7 +183,9 @@ class _AdminEventCreateScreenState
         location: locationController.text.isEmpty
             ? null
             : locationController.text,
-        maxParticipants: int.parse(maxParticipantsController.text),
+        maxParticipants: maxParticipantsController.text.isEmpty
+            ? null
+            : maxParticipantsController.text,
         fee: feeController.text.isEmpty ? null : feeController.text,
       );
 
@@ -613,10 +615,11 @@ class _AdminEventCreateScreenState
             TextField(
               controller: maxParticipantsController,
               decoration: const InputDecoration(
-                labelText: '定員',
+                labelText: '定員（数値または文字列）',
+                hintText: '例: 10 または 先着順',
                 border: OutlineInputBorder(),
+                helperText: '数値の場合は自動的にキャンセル待ち管理がされます',
               ),
-              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16),
             TextField(

@@ -65,7 +65,7 @@ class EventModel {
   final DateTime? publishDatetime; // 公開日時
   final DateTime? cancellationDeadline; // キャンセル期限
   final String? location;
-  final int maxParticipants;
+  final String? maxParticipants;
   final String? fee;
   final List<EventParticipant> participants;
   final DateTime createdAt;
@@ -106,8 +106,8 @@ class EventModel {
           ? (data['cancellationDeadline'] as Timestamp).toDate()
           : null,
       location: data['location'],
-      maxParticipants: data['maxParticipants'] ?? 0,
-      fee: data['fee'] as String?,
+      maxParticipants: data['maxParticipants']?.toString(),
+      fee: data['fee']?.toString(),
       participants: (data['participants'] as List<dynamic>?)
               ?.map((p) => EventParticipant.fromMap(p as Map<String, dynamic>))
               .toList() ??
@@ -145,7 +145,7 @@ class EventModel {
     DateTime? publishDatetime,
     DateTime? cancellationDeadline,
     String? location,
-    int? maxParticipants,
+    String? maxParticipants,
     String? fee,
     List<EventParticipant>? participants,
     DateTime? createdAt,
@@ -175,7 +175,24 @@ class EventModel {
   int get waitlistCount =>
       participants.where((p) => p.status == ParticipationStatus.waitlist).length;
 
-  bool get isFull => confirmedCount >= maxParticipants;
+  // 定員が数値かどうかをチェック
+  bool get isMaxParticipantsNumeric {
+    if (maxParticipants == null || maxParticipants!.isEmpty) return false;
+    return int.tryParse(maxParticipants!) != null;
+  }
+
+  // 数値の定員を取得（数値でない場合はnull）
+  int? get maxParticipantsAsInt {
+    if (maxParticipants == null || maxParticipants!.isEmpty) return null;
+    return int.tryParse(maxParticipants!);
+  }
+
+  // 定員が数値の場合のみチェック（文字列の場合は常にfalse）
+  bool get isFull {
+    final maxAsInt = maxParticipantsAsInt;
+    if (maxAsInt == null) return false; // 数値でない場合は定員なし
+    return confirmedCount >= maxAsInt;
+  }
 
   // 公開されているかチェック（公開日時がnullまたは現在時刻を過ぎている）
   bool get isPublished {

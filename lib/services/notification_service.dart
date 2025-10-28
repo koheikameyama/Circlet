@@ -203,7 +203,7 @@ class NotificationService {
       circleId: circleId,
       recipientUserId: recipientUserId,
       title: 'イベント参加が確定しました',
-      body: '$eventName のキャンセル待ちから参加確定に変更されました',
+      body: '$eventName のキャンセル待ちから参加予定に変更されました',
       type: NotificationType.waitlistPromotion,
       eventId: eventId,
     );

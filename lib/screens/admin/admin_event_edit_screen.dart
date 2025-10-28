@@ -40,7 +40,7 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
     nameController = TextEditingController(text: widget.event.name);
     descriptionController = TextEditingController(text: widget.event.description ?? '');
     locationController = TextEditingController(text: widget.event.location ?? '');
-    maxParticipantsController = TextEditingController(text: widget.event.maxParticipants.toString());
+    maxParticipantsController = TextEditingController(text: widget.event.maxParticipants ?? '');
     feeController = TextEditingController(text: widget.event.fee ?? '');
 
     selectedDate = widget.event.datetime;
@@ -203,7 +203,9 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
         location: locationController.text.isEmpty
             ? null
             : locationController.text,
-        maxParticipants: int.parse(maxParticipantsController.text),
+        maxParticipants: maxParticipantsController.text.isEmpty
+            ? null
+            : maxParticipantsController.text,
         fee: feeController.text.isEmpty ? null : feeController.text,
       );
 
@@ -620,10 +622,11 @@ class _AdminEventEditScreenState extends ConsumerState<AdminEventEditScreen> {
             TextField(
               controller: maxParticipantsController,
               decoration: const InputDecoration(
-                labelText: '定員',
+                labelText: '定員（数値または文字列）',
+                hintText: '例: 10 または 先着順',
                 border: OutlineInputBorder(),
+                helperText: '数値の場合は自動的にキャンセル待ち管理がされます',
               ),
-              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16),
             TextField(
