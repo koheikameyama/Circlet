@@ -1,13 +1,9 @@
-import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:google_places_flutter/google_places_flutter.dart';
-import 'package:google_places_flutter/model/prediction.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
-import '../../config/api_keys.dart';
 
 class AdminEventCreateScreen extends ConsumerStatefulWidget {
   final String circleId;

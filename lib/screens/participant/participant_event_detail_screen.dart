@@ -1,11 +1,9 @@
-import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/event_model.dart';
 import '../../models/payment_model.dart';
-import '../../models/cancellation_request_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/payment_provider.dart';
@@ -100,8 +98,6 @@ class ParticipantEventDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildEventHeader(EventModel event) {
-    final dateFormat = DateFormat('yyyy年MM月dd日 (E) HH:mm', 'ja');
-
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/circle_provider.dart';
-import '../../models/circle_model.dart';
 
 class CircleSelectionScreen extends ConsumerWidget {
   const CircleSelectionScreen({super.key});
@@ -35,10 +34,6 @@ class CircleSelectionScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              // 元のcontextを保存
-              final navigator = Navigator.of(context);
-              final scaffoldMessenger = ScaffoldMessenger.of(context);
-
               // ログアウト確認ダイアログ
               final confirmed = await showDialog<bool>(
                 context: context,

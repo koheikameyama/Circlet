@@ -1,17 +1,13 @@
-import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:google_places_flutter/google_places_flutter.dart';
-import 'package:google_places_flutter/model/prediction.dart';
 import '../../models/event_model.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../providers/cancellation_request_provider.dart';
-import '../../config/api_keys.dart';
 import 'admin_event_participants_screen.dart';
 import 'admin_event_payments_screen.dart';
 import 'admin_event_edit_screen.dart';
@@ -63,7 +59,6 @@ class AdminEventDetailScreen extends ConsumerWidget {
             return const Center(child: Text('イベントが見つかりません'));
           }
 
-          final dateFormat = DateFormat('yyyy年MM月dd日 (E) HH:mm', 'ja');
           final isParticipating = currentUser != null &&
               event.participants.any((p) =>
                   p.userId == currentUser.uid &&
@@ -382,16 +377,6 @@ class AdminEventDetailScreen extends ConsumerWidget {
       }
     } catch (e) {
       // エラーは無視
-    }
-  }
-
-  Future<String> _getUserName(WidgetRef ref, String userId) async {
-    try {
-      final authService = ref.read(authServiceProvider);
-      final user = await authService.getUserData(userId);
-      return user?.name ?? userId;
-    } catch (e) {
-      return userId;
     }
   }
 

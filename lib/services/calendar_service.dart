@@ -1,5 +1,6 @@
 import 'package:device_calendar/device_calendar.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:timezone/timezone.dart' as tz;
 import '../models/event_model.dart';
 
 class CalendarService {
@@ -120,7 +121,7 @@ class CalendarService {
         eventId,
       );
 
-      return deleteResult?.isSuccess ?? false;
+      return deleteResult.isSuccess;
     } catch (e) {
       print('Error deleting event from calendar: $e');
       return false;
@@ -189,12 +190,4 @@ class CalendarService {
 }
 
 // タイムゾーンのヘルパー（device_calendarではtimezoneパッケージが必要）
-final local = getLocation('Asia/Tokyo');
-
-Location getLocation(String locationName) {
-  // この実装は簡略化されています
-  // 実際にはtimezoneパッケージを使用して適切なLocationを取得する必要があります
-  return Location.fromJson({
-    'name': locationName,
-  });
-}
+final local = tz.getLocation('Asia/Tokyo');

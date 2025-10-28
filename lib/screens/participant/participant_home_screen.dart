@@ -28,7 +28,6 @@ class _ParticipantHomeScreenState extends ConsumerState<ParticipantHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = ref.watch(authStateProvider).value;
     final circleAsync = ref.watch(circleProvider(widget.circleId));
 
     return Scaffold(

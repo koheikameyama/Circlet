@@ -6,7 +6,7 @@
     "prepare": "husky install"
   },
   "lint-staged": {
-    "lib/{models,services,screens,providers}/**/*.dart": [
+    "lib/**/*.dart": [
       "echo '⚠️  重要なファイルが変更されました。機能追加や仕様変更がある場合は、Claude Codeで /update-readme コマンドを実行してREADMEを更新してください。'"
     ]
   },
