@@ -215,6 +215,7 @@ class CircleService {
             tags: tags,
             joinedAt: m.joinedAt,
             displayName: m.displayName,
+            profileImageUrl: m.profileImageUrl,
           );
         }
         return m;
@@ -262,6 +263,7 @@ class CircleService {
             tags: m.tags,
             joinedAt: m.joinedAt,
             displayName: m.displayName,
+            profileImageUrl: m.profileImageUrl,
           );
         }
         return m;
@@ -295,6 +297,7 @@ class CircleService {
             tags: m.tags,
             joinedAt: m.joinedAt,
             displayName: displayName,
+            profileImageUrl: m.profileImageUrl,
           );
         }
         return m;
@@ -306,6 +309,40 @@ class CircleService {
       });
     } catch (e) {
       AppLogger.error('Error updating member display name: $e');
+      rethrow;
+    }
+  }
+
+  // メンバーのプロフィール画像URLを更新
+  Future<void> updateMemberProfileImage({
+    required String circleId,
+    required String userId,
+    required String? profileImageUrl,
+  }) async {
+    try {
+      final circle = await getCircle(circleId);
+      if (circle == null) return;
+
+      final updatedMembers = circle.members.map((m) {
+        if (m.userId == userId) {
+          return CircleMember(
+            userId: m.userId,
+            role: m.role,
+            tags: m.tags,
+            joinedAt: m.joinedAt,
+            displayName: m.displayName,
+            profileImageUrl: profileImageUrl,
+          );
+        }
+        return m;
+      }).map((m) => m.toMap()).toList();
+
+      await _firestore.collection('circles').doc(circleId).update({
+        'members': updatedMembers,
+        'updatedAt': Timestamp.now(),
+      });
+    } catch (e) {
+      AppLogger.error('Error updating member profile image: $e');
       rethrow;
     }
   }

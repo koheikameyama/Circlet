@@ -6,6 +6,7 @@ class CircleMember {
   final List<String> tags;
   final DateTime joinedAt;
   final String? displayName; // サークル内での表示名（任意）
+  final String? profileImageUrl; // サークル内のプロフィール画像URL
 
   CircleMember({
     required this.userId,
@@ -13,6 +14,7 @@ class CircleMember {
     required this.tags,
     required this.joinedAt,
     this.displayName,
+    this.profileImageUrl,
   });
 
   factory CircleMember.fromMap(Map<String, dynamic> data) {
@@ -22,6 +24,7 @@ class CircleMember {
       tags: List<String>.from(data['tags'] ?? []),
       joinedAt: (data['joinedAt'] as Timestamp).toDate(),
       displayName: data['displayName'],
+      profileImageUrl: data['profileImageUrl'],
     );
   }
 
@@ -32,6 +35,7 @@ class CircleMember {
       'tags': tags,
       'joinedAt': Timestamp.fromDate(joinedAt),
       if (displayName != null) 'displayName': displayName,
+      if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
     };
   }
 }

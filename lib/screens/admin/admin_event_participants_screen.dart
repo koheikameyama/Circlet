@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/event_model.dart';
@@ -271,9 +272,26 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
                     future: _getUserName(ref, participant.userId, circle),
                     builder: (context, snapshot) {
                       final isGuest = participant.userId.startsWith('guest_');
+                      final profileImageUrl =
+                          _getUserProfileImageUrl(participant.userId, circle);
                       return Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Colors.grey,
+                            backgroundImage: profileImageUrl != null
+                                ? CachedNetworkImageProvider(profileImageUrl)
+                                : null,
+                            child: profileImageUrl == null
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 16,
+                                    color: Colors.white,
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
                           Flexible(
                             child: Text(
                               snapshot.data ?? participant.userId,
@@ -415,6 +433,19 @@ class AdminEventParticipantsScreen extends ConsumerWidget {
       return user?.name ?? userId;
     } catch (e) {
       return userId;
+    }
+  }
+
+  String? _getUserProfileImageUrl(String userId, dynamic circle) {
+    try {
+      if (circle != null) {
+        final members = circle.members.where((m) => m.userId == userId);
+        final member = members.isEmpty ? null : members.first;
+        return member?.profileImageUrl;
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 

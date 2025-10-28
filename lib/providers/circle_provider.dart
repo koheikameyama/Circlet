@@ -136,3 +136,23 @@ final updateCircleProvider = Provider<Future<void> Function({
     );
   };
 });
+
+// メンバーのプロフィール画像更新のProvider
+final updateMemberProfileImageProvider = Provider<Future<void> Function({
+  required String circleId,
+  required String userId,
+  required String? profileImageUrl,
+})>((ref) {
+  return ({
+    required String circleId,
+    required String userId,
+    required String? profileImageUrl,
+  }) async {
+    final circleService = ref.read(circleServiceProvider);
+    await circleService.updateMemberProfileImage(
+      circleId: circleId,
+      userId: userId,
+      profileImageUrl: profileImageUrl,
+    );
+  };
+});

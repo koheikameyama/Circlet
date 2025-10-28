@@ -1,14 +1,17 @@
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, File;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../providers/circle_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
+import '../../providers/storage_provider.dart';
 import '../../models/event_model.dart';
 import '../../services/circle_service.dart';
 import '../../services/logger_service.dart';
@@ -932,12 +935,30 @@ class _AdminMembersTab extends ConsumerWidget {
 
                   return Card(
                     child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isAdmin ? Colors.blue : Colors.grey,
-                        child: Icon(
-                          isAdmin ? Icons.admin_panel_settings : Icons.person,
-                          color: Colors.white,
-                        ),
+                      leading: FutureBuilder<String?>(
+                        future: _getUserProfileImageUrl(ref, member.userId, circleId),
+                        builder: (context, snapshot) {
+                          final profileImageUrl = snapshot.data;
+                          return Stack(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor:
+                                    isAdmin ? Colors.blue : Colors.grey,
+                                backgroundImage: profileImageUrl != null
+                                    ? CachedNetworkImageProvider(profileImageUrl)
+                                    : null,
+                                child: profileImageUrl == null
+                                    ? Icon(
+                                        isAdmin
+                                            ? Icons.admin_panel_settings
+                                            : Icons.person,
+                                        color: Colors.white,
+                                      )
+                                    : null,
+                              ),
+                            ],
+                          );
+                        },
                       ),
                       title: FutureBuilder<String>(
                         future: _getUserName(ref, member.userId),
@@ -978,18 +999,6 @@ class _AdminMembersTab extends ConsumerWidget {
                         },
                       ),
                       subtitle: Text(isAdmin ? '管理者' : 'メンバー'),
-                      onTap: isCurrentUser
-                          ? () async {
-                              final userName =
-                                  await _getUserName(ref, member.userId);
-                              final displayName =
-                                  member.displayName ?? userName;
-                              if (context.mounted) {
-                                _showEditNameDialog(context, ref, circleId,
-                                    member.userId, displayName);
-                              }
-                            }
-                          : null,
                       trailing: PopupMenuButton<String>(
                         icon: const Icon(Icons.more_vert),
                         onSelected: (value) async {
@@ -1131,6 +1140,28 @@ class _AdminMembersTab extends ConsumerWidget {
       return user?.name ?? userId;
     } catch (e) {
       return userId;
+    }
+  }
+
+  Future<String?> _getUserProfileImageUrl(WidgetRef ref, String userId, String circleId) async {
+    try {
+      // サークル用のプロフィール画像をチェック
+      final circleAsync = ref.read(circleProvider(circleId));
+      final circle = circleAsync.value;
+      if (circle != null) {
+        final members = circle.members.where((m) => m.userId == userId);
+        final member = members.isEmpty ? null : members.first;
+        if (member?.profileImageUrl != null) {
+          return member!.profileImageUrl;
+        }
+      }
+
+      // なければグローバルなプロフィール画像を取得
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.getUserData(userId);
+      return user?.profileImageUrl;
+    } catch (e) {
+      return null;
     }
   }
 
@@ -1287,15 +1318,15 @@ class _AdminProfileTab extends ConsumerWidget {
 
     return userDataAsync?.when(
           data: (userData) {
-            final profileImageUrl = userData?.profileImageUrl;
-
-            // サークル情報から表示名を取得
+            // サークル情報から表示名とプロフィール画像を取得
             final circle = circleAsync.value;
             final members =
                 circle?.members.where((m) => m.userId == currentUser.uid);
             final member = (members?.isEmpty ?? true) ? null : members!.first;
             final displayName =
                 member?.displayName ?? userData?.name ?? '名前未設定';
+            // サークル用の画像を優先、なければグローバルな画像
+            final profileImageUrl = member?.profileImageUrl ?? userData?.profileImageUrl;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -1309,14 +1340,46 @@ class _AdminProfileTab extends ConsumerWidget {
                       child: Column(
                         children: [
                           // プロフィール画像
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundImage: profileImageUrl != null
-                                ? NetworkImage(profileImageUrl)
-                                : null,
-                            child: profileImageUrl == null
-                                ? const Icon(Icons.person, size: 50)
-                                : null,
+                          GestureDetector(
+                            onTap: () {
+                              final circleProfileImageUrl = member?.profileImageUrl;
+                              _showProfileImageOptions(
+                                context,
+                                ref,
+                                circleId,
+                                currentUser.uid,
+                                circleProfileImageUrl,
+                              );
+                            },
+                            child: Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 50,
+                                  backgroundImage: profileImageUrl != null
+                                      ? NetworkImage(profileImageUrl)
+                                      : null,
+                                  child: profileImageUrl == null
+                                      ? const Icon(Icons.person, size: 50)
+                                      : null,
+                                ),
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.blue,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt,
+                                      size: 20,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 16),
                           // 表示名
@@ -1555,6 +1618,181 @@ class _AdminCalendarView extends ConsumerWidget {
                     ),
         ),
       ],
+    );
+  }
+}
+
+// グローバル関数：プロフィール画像オプション表示
+void _showProfileImageOptions(
+  BuildContext context,
+  WidgetRef ref,
+  String circleId,
+  String userId,
+  String? currentImageUrl,
+) {
+  showModalBottomSheet(
+    context: context,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.photo_library),
+            title: const Text('ギャラリーから選択'),
+            onTap: () async {
+              Navigator.pop(sheetContext);
+              await _pickAndUploadProfileImage(
+                context,
+                ref,
+                circleId,
+                userId,
+                ImageSource.gallery,
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.camera_alt),
+            title: const Text('カメラで撮影'),
+            onTap: () async {
+              Navigator.pop(sheetContext);
+              await _pickAndUploadProfileImage(
+                context,
+                ref,
+                circleId,
+                userId,
+                ImageSource.camera,
+              );
+            },
+          ),
+          if (currentImageUrl != null)
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('プロフィール画像を削除',
+                  style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                Navigator.pop(sheetContext);
+                await _removeProfileImage(context, ref, circleId, userId);
+              },
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+// グローバル関数：プロフィール画像の選択とアップロード
+Future<void> _pickAndUploadProfileImage(
+  BuildContext context,
+  WidgetRef ref,
+  String circleId,
+  String userId,
+  ImageSource source,
+) async {
+  try {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: source,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 85,
+    );
+
+    if (pickedFile == null) return;
+
+    if (!context.mounted) return;
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    final imageFile = File(pickedFile.path);
+
+    // Upload image
+    final uploadImage = ref.read(uploadProfileImageProvider);
+    final imageUrl = await uploadImage(
+      circleId: circleId,
+      userId: userId,
+      imageFile: imageFile,
+    );
+
+    if (imageUrl == null) {
+      throw Exception('画像のアップロードに失敗しました');
+    }
+
+    // Update member profile image URL
+    final updateMemberProfileImage =
+        ref.read(updateMemberProfileImageProvider);
+    await updateMemberProfileImage(
+      circleId: circleId,
+      userId: userId,
+      profileImageUrl: imageUrl,
+    );
+
+    if (!context.mounted) return;
+
+    // Dismiss loading indicator
+    Navigator.pop(context);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('プロフィール画像を更新しました'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } catch (e) {
+    AppLogger.error('Error uploading profile image: $e');
+    if (!context.mounted) return;
+
+    // Dismiss loading indicator if still showing
+    Navigator.of(context, rootNavigator: true).pop();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('画像のアップロードに失敗しました: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
+// グローバル関数：プロフィール画像の削除
+Future<void> _removeProfileImage(
+  BuildContext context,
+  WidgetRef ref,
+  String circleId,
+  String userId,
+) async {
+  try {
+    final updateMemberProfileImage =
+        ref.read(updateMemberProfileImageProvider);
+    await updateMemberProfileImage(
+      circleId: circleId,
+      userId: userId,
+      profileImageUrl: null,
+    );
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('プロフィール画像を削除しました'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } catch (e) {
+    AppLogger.error('Error removing profile image: $e');
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('画像の削除に失敗しました: $e'),
+        backgroundColor: Colors.red,
+      ),
     );
   }
 }

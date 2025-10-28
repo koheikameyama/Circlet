@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/event_model.dart';
@@ -162,21 +163,21 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
       builder: (context, snapshot) {
         final name = snapshot.data ?? participant.userId;
         final isGuest = participant.userId.startsWith('guest_');
+        final profileImageUrl = _getUserProfileImageUrl(participant.userId, circle);
 
         return ListTile(
           contentPadding: const EdgeInsets.symmetric(vertical: 4),
           leading: CircleAvatar(
-            backgroundColor: participant.status == ParticipationStatus.confirmed
-                ? Colors.green.shade100
-                : Colors.orange.shade100,
-            child: Icon(
-              participant.status == ParticipationStatus.confirmed
-                  ? Icons.check_circle
-                  : Icons.schedule,
-              color: participant.status == ParticipationStatus.confirmed
-                  ? Colors.green
-                  : Colors.orange,
-            ),
+            backgroundColor: Colors.grey,
+            backgroundImage: profileImageUrl != null
+                ? CachedNetworkImageProvider(profileImageUrl)
+                : null,
+            child: profileImageUrl == null
+                ? const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                  )
+                : null,
           ),
           title: Row(
             children: [
@@ -252,6 +253,19 @@ class ParticipantEventParticipantsScreen extends ConsumerWidget {
       return user?.name ?? userId;
     } catch (e) {
       return userId;
+    }
+  }
+
+  String? _getUserProfileImageUrl(String userId, dynamic circle) {
+    try {
+      if (circle != null) {
+        final members = circle.members.where((m) => m.userId == userId);
+        final member = members.isEmpty ? null : members.first;
+        return member?.profileImageUrl;
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 }
