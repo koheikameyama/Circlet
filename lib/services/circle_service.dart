@@ -522,7 +522,7 @@ class CircleService {
 
   // 招待リンクのURLを生成
   String generateInviteUrl(String inviteId) {
-    return 'grumane://invite/$inviteId';
+    return 'circlet://invite/$inviteId';
   }
 
   // 招待リンク用のトークンを生成（旧メソッド - 互換性のため残す）

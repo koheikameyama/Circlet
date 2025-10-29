@@ -60,8 +60,8 @@ class DeepLinkService {
   ) {
     AppLogger.info('Deep link received: $uri');
 
-    // grumane://invite/{inviteId} の形式をチェック
-    if (uri.scheme == 'grumane' && uri.host == 'invite') {
+    // circlet://invite/{inviteId} の形式をチェック
+    if (uri.scheme == 'circlet' && uri.host == 'invite') {
       final pathSegments = uri.pathSegments;
       if (pathSegments.isNotEmpty) {
         final inviteId = pathSegments[0];

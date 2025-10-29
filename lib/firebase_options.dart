@@ -54,20 +54,20 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyC0siHjYb8rgGrseNUsr5Ik5Zv0aQspBkU',
-    appId: '1:442058714841:android:a3bac48946ab3e658158c8',
-    messagingSenderId: '442058714841',
-    projectId: 'grumane-3d818',
-    storageBucket: 'grumane-3d818.firebasestorage.app',
+    apiKey: 'AIzaSyCMA2ptMxesVbbhAjkb1nq5n7Njerho1WU',
+    appId: '1:376768263574:android:67876195466d3dbcfd99b7',
+    messagingSenderId: '376768263574',
+    projectId: 'circlet-9ee47',
+    storageBucket: 'circlet-9ee47.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBCuEoLjIcAvo1M_sRIONOms86F3yQ9S-k',
-    appId: '1:442058714841:ios:a80871002d5a44758158c8',
-    messagingSenderId: '442058714841',
-    projectId: 'grumane-3d818',
-    storageBucket: 'grumane-3d818.firebasestorage.app',
-    iosBundleId: 'com.grumane.grumane',
+    apiKey: 'AIzaSyCHdAZEBYD-ZKxyAPJ9o6-dH47cZ1BZdUk',
+    appId: '1:376768263574:ios:093a5c038fa693b1fd99b7',
+    messagingSenderId: '376768263574',
+    projectId: 'circlet-9ee47',
+    storageBucket: 'circlet-9ee47.firebasestorage.app',
+    iosBundleId: 'com.circlet.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -76,6 +76,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
     projectId: 'YOUR_PROJECT_ID',
     storageBucket: 'YOUR_PROJECT_ID.appspot.com',
-    iosBundleId: 'com.grumane.grumane',
+    iosBundleId: 'com.Circlet.Circlet',
   );
 }

@@ -94,19 +94,19 @@ void main() async {
 
   runApp(
     const ProviderScope(
-      child: GrumaneApp(),
+      child: CircletApp(),
     ),
   );
 }
 
-class GrumaneApp extends ConsumerStatefulWidget {
-  const GrumaneApp({super.key});
+class CircletApp extends ConsumerStatefulWidget {
+  const CircletApp({super.key});
 
   @override
-  ConsumerState<GrumaneApp> createState() => _GrumaneAppState();
+  ConsumerState<CircletApp> createState() => _CircletAppState();
 }
 
-class _GrumaneAppState extends ConsumerState<GrumaneApp> {
+class _CircletAppState extends ConsumerState<CircletApp> {
   DeepLinkService? _deepLinkService;
 
   @override
@@ -265,7 +265,9 @@ class _GrumaneAppState extends ConsumerState<GrumaneApp> {
 
           // 表示名編集ダイアログを表示
           final currentUser = _deepLinkService?.authService.currentUser;
-          if (currentUser != null && navContext.mounted && circleId.isNotEmpty) {
+          if (currentUser != null &&
+              navContext.mounted &&
+              circleId.isNotEmpty) {
             await _showEditNameDialog(navContext, circleId, currentUser.uid);
           }
 
@@ -375,7 +377,7 @@ class _GrumaneAppState extends ConsumerState<GrumaneApp> {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Grumane - サークル管理',
+      title: 'Circlet - サークル管理',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,
