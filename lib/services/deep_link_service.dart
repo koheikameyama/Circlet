@@ -69,7 +69,17 @@ class DeepLinkService {
       } else {
         onError('招待リンクの形式が正しくありません');
       }
-    } else {
+    }
+    // 将来的にUniversal Links/App Linksに対応する場合
+    // https://grumane-3d818.web.app/invite/{inviteId} も処理
+    else if (uri.scheme == 'https' &&
+             uri.host == 'grumane-3d818.web.app' &&
+             uri.pathSegments.length >= 2 &&
+             uri.pathSegments[0] == 'invite') {
+      final inviteId = uri.pathSegments[1];
+      onInviteLink(inviteId);
+    }
+    else {
       AppLogger.info('Unknown deep link format: $uri');
     }
   }

@@ -520,9 +520,10 @@ class CircleService {
             .toList());
   }
 
-  // 招待リンクのURLを生成
+  // 招待リンクのURLを生成（Firebase Hosting URL）
   String generateInviteUrl(String inviteId) {
-    return 'grumane://invite/$inviteId';
+    // Firebase Hostingのドメインを使用
+    return 'https://grumane-3d818.web.app/invite/$inviteId';
   }
 
   // 招待リンク用のトークンを生成（旧メソッド - 互換性のため残す）
