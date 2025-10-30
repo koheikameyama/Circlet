@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'logger_service.dart';
 import 'package:uuid/uuid.dart';
@@ -535,13 +536,19 @@ class CircleService {
             .toList());
   }
 
-  // 招待リンクのURLを生成（Firebase Hosting URL）
-  // HTTPS URLへの切り替え方法は docs/universal-links-setup.md を参照
+  // 招待リンクのURLを生成
+  // プラットフォームによって異なるURLを返す
   String generateInviteUrl(String inviteId) {
-    // 本番環境（Apple Developer Program登録後）はHTTPS URLを使用
-    // return 'https://circlet-9ee47.web.app/invite/$inviteId';
+    // iOS: HTTPS URL（Universal Links対応）
+    if (Platform.isIOS) {
+      return 'https://circlet.jp/invite/$inviteId';
+    }
 
-    // 開発環境ではカスタムURLスキームを使用（Apple Developer Program不要）
+    // Android: カスタムURLスキーム
+    // TODO: 本番リリース時にHTTPS URLに変更する
+    // App Linksを使う場合は docs/universal-links-setup.md を参照し、
+    // assetlinks.jsonのSHA256フィンガープリントを更新後、以下に変更:
+    // return 'https://circlet.jp/invite/$inviteId';
     return 'circlet://invite/$inviteId';
   }
 

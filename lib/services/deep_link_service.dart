@@ -60,23 +60,24 @@ class DeepLinkService {
   ) {
     AppLogger.info('Deep link received: $uri');
 
-    // circlet://invite/{inviteId} の形式をチェック
+    // カスタムURLスキーム: circlet://invite/{inviteId}
     if (uri.scheme == 'circlet' && uri.host == 'invite') {
       final pathSegments = uri.pathSegments;
       if (pathSegments.isNotEmpty) {
         final inviteId = pathSegments[0];
+        AppLogger.info('Invite link (custom scheme): $inviteId');
         onInviteLink(inviteId);
       } else {
         onError('招待リンクの形式が正しくありません');
       }
     }
-    // 将来的にUniversal Links/App Linksに対応する場合
-    // https://grumane-3d818.web.app/invite/{inviteId} も処理
+    // Universal Links/App Links: https://circlet.jp/invite/{inviteId}
     else if (uri.scheme == 'https' &&
-             uri.host == 'grumane-3d818.web.app' &&
+             uri.host == 'circlet.jp' &&
              uri.pathSegments.length >= 2 &&
              uri.pathSegments[0] == 'invite') {
       final inviteId = uri.pathSegments[1];
+      AppLogger.info('Invite link (HTTPS): $inviteId');
       onInviteLink(inviteId);
     }
     else {

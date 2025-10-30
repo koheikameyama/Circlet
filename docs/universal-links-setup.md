@@ -10,7 +10,7 @@
 - 動作: iOS/Androidアプリ両方で動作
 
 **本番環境（将来）:**
-- 招待URL: `https://circlet-9ee47.web.app/invite/[inviteId]`
+- 招待URL: `https://circlet.jp/invite/[inviteId]`
 - Apple Developer Program: 必須（年間$99）
 - 動作: WebブラウザでもシェアしやすいHTTPS URL
 
@@ -75,7 +75,7 @@
    - なければ、"+ Capability" から追加
    - Domains:
      ```
-     applinks:circlet-9ee47.web.app
+     applinks:circlet.jp
      ```
 
 ### ステップ3: Android設定の更新
@@ -135,7 +135,7 @@ SHA256: AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90:
 ```dart
 String generateInviteUrl(String inviteId) {
   // 本番環境（Apple Developer Program登録後）はHTTPS URLを使用
-  // return 'https://circlet-9ee47.web.app/invite/$inviteId';
+  // return 'https://circlet.jp/invite/$inviteId';
 
   // 開発環境ではカスタムURLスキームを使用（Apple Developer Program不要）
   return 'circlet://invite/$inviteId';
@@ -146,7 +146,7 @@ String generateInviteUrl(String inviteId) {
 ```dart
 String generateInviteUrl(String inviteId) {
   // 本番環境: HTTPS URLを使用
-  return 'https://circlet-9ee47.web.app/invite/$inviteId';
+  return 'https://circlet.jp/invite/$inviteId';
 
   // 開発環境用（必要に応じてコメント解除）
   // return 'circlet://invite/$inviteId';
@@ -170,7 +170,7 @@ firebase deploy --only hosting
 
 2. Safariで招待URLを開く
    ```
-   https://circlet-9ee47.web.app/invite/test-invite-id
+   https://circlet.jp/invite/test-invite-id
    ```
 
 3. アプリが自動的に起動することを確認
@@ -184,7 +184,7 @@ firebase deploy --only hosting
 
 2. Chromeで招待URLを開く
    ```
-   https://circlet-9ee47.web.app/invite/test-invite-id
+   https://circlet.jp/invite/test-invite-id
    ```
 
 3. アプリが自動的に起動することを確認
@@ -201,15 +201,15 @@ firebase deploy --only hosting
 
 **原因2: Associated Domainsが設定されていない**
 - XcodeのSigning & Capabilitiesで確認
-- `applinks:circlet-9ee47.web.app` が追加されているか
+- `applinks:circlet.jp` が追加されているか
 
 **原因3: apple-app-site-associationファイルにアクセスできない**
 ```bash
 # ブラウザで確認
-https://circlet-9ee47.web.app/.well-known/apple-app-site-association
+https://circlet.jp/.well-known/apple-app-site-association
 
 # コマンドで確認
-curl https://circlet-9ee47.web.app/.well-known/apple-app-site-association
+curl https://circlet.jp/.well-known/apple-app-site-association
 ```
 
 **原因4: キャッシュの問題**
@@ -225,10 +225,10 @@ curl https://circlet-9ee47.web.app/.well-known/apple-app-site-association
 **原因2: assetlinks.jsonにアクセスできない**
 ```bash
 # ブラウザで確認
-https://circlet-9ee47.web.app/.well-known/assetlinks.json
+https://circlet.jp/.well-known/assetlinks.json
 
 # コマンドで確認
-curl https://circlet-9ee47.web.app/.well-known/assetlinks.json
+curl https://circlet.jp/.well-known/assetlinks.json
 ```
 
 **原因3: autoVerifyが失敗している**

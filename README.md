@@ -398,3 +398,23 @@ This project is private and not licensed for public use.
 ## お問い合わせ
 
 開発に関する質問や問題がある場合は、Issuesを作成してください。
+
+## 📚 ドキュメント
+
+### 招待リンク機能
+
+- [Universal Links（HTTPS招待URL）セットアップガイド](docs/universal-links-setup.md)
+  - 本番環境へのHTTPS URL切り替え手順
+  - Apple Developer Program登録
+  - iOS/Android設定
+
+- [Android招待リンクテストガイド](docs/android-invite-testing.md)
+  - Androidでの招待リンクテスト方法
+  - トラブルシューティング
+  - デバッグ方法
+
+
+- [本番リリースチェックリスト](docs/release-checklist.md)
+  - App Store / Google Play リリース前の確認事項
+  - 招待URL HTTPS化の手順
+  - テスト項目
