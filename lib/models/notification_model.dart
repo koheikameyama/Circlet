@@ -4,6 +4,9 @@ enum NotificationType {
   eventReminder,
   paymentReminder,
   waitlistPromotion,
+  eventCreated,
+  eventUpdated,
+  capacityReached,
   general,
 }
 

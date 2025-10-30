@@ -12,6 +12,8 @@ class NotificationService {
   // FCMトークンを取得して保存
   Future<void> initializeNotifications(String userId) async {
     try {
+      AppLogger.info('Initializing notifications for user: $userId');
+
       // 通知権限をリクエスト
       final settings = await _messaging.requestPermission(
         alert: true,
@@ -19,24 +21,39 @@ class NotificationService {
         sound: true,
       );
 
+      AppLogger.info('Notification permission status: ${settings.authorizationStatus}');
+
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         // FCMトークンを取得
         final token = await _messaging.getToken();
+        AppLogger.info('FCM token: ${token != null ? "取得成功" : "取得失敗"}');
+
         if (token != null) {
-          // トークンをFirestoreに保存
-          await _firestore.collection('users').doc(userId).update({
-            'fcmToken': token,
-            'updatedAt': Timestamp.now(),
-          });
+          // トークンをFirestoreに保存（mergeを使用してドキュメントがなければ作成）
+          try {
+            await _firestore.collection('users').doc(userId).set({
+              'fcmToken': token,
+              'updatedAt': Timestamp.now(),
+            }, SetOptions(merge: true));
+
+            AppLogger.info('FCM token saved successfully');
+          } catch (saveError) {
+            AppLogger.error('Error saving FCM token: $saveError');
+          }
+        } else {
+          AppLogger.warning('FCM token is null');
         }
 
         // トークンのリフレッシュを監視
         _messaging.onTokenRefresh.listen((newToken) {
-          _firestore.collection('users').doc(userId).update({
+          AppLogger.info('FCM token refreshed');
+          _firestore.collection('users').doc(userId).set({
             'fcmToken': newToken,
             'updatedAt': Timestamp.now(),
-          });
+          }, SetOptions(merge: true));
         });
+      } else {
+        AppLogger.warning('Notification permission denied: ${settings.authorizationStatus}');
       }
     } catch (e) {
       AppLogger.error('Error initializing notifications: $e');

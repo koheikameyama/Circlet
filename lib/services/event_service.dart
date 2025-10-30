@@ -2,10 +2,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'logger_service.dart';
 import 'package:uuid/uuid.dart';
 import '../models/event_model.dart';
+import '../models/notification_model.dart';
+import 'notification_service.dart';
+import 'circle_service.dart';
 
 class EventService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _uuid = const Uuid();
+  final NotificationService _notificationService = NotificationService();
+  final CircleService _circleService = CircleService();
 
   // イベントを作成
   Future<String> createEvent({
@@ -43,6 +48,9 @@ class EventService {
           .collection('events')
           .doc(eventId)
           .set(event.toFirestore());
+
+      // イベント作成通知を送信
+      await _sendEventCreatedNotification(circleId, eventId, name, datetime);
 
       return eventId;
     } catch (e) {
@@ -114,6 +122,19 @@ class EventService {
       if (fee != null) updates['fee'] = fee;
 
       await _firestore.collection('events').doc(eventId).update(updates);
+
+      // イベント更新通知を送信（重要な変更がある場合のみ）
+      if (name != null || datetime != null || location != null) {
+        final event = await getEvent(eventId);
+        if (event != null) {
+          await _sendEventUpdatedNotification(
+            event.circleId,
+            eventId,
+            event.name,
+            event.datetime,
+          );
+        }
+      }
     } catch (e) {
       AppLogger.error('Error updating event: $e');
       rethrow;
@@ -147,6 +168,18 @@ class EventService {
         'participants': FieldValue.arrayUnion([participant.toMap()]),
         'updatedAt': Timestamp.now(),
       });
+
+      // 定員到達時の通知を送信
+      final updatedEvent = await getEvent(eventId);
+      if (updatedEvent != null &&
+          updatedEvent.isFull &&
+          !event.isFull) {
+        await _sendCapacityReachedNotification(
+          event.circleId,
+          eventId,
+          event.name,
+        );
+      }
     } catch (e) {
       AppLogger.error('Error joining event: $e');
       rethrow;
@@ -218,7 +251,13 @@ class EventService {
       'updatedAt': Timestamp.now(),
     });
 
-    // TODO: 繰り上げ通知を送信
+    // 繰り上げ通知を送信
+    await _notificationService.sendWaitlistPromotionNotification(
+      eventId: eventId,
+      circleId: event.circleId,
+      recipientUserId: promotedParticipant.userId,
+      eventName: event.name,
+    );
   }
 
   // 参加者のステータスを更新（管理者用）
@@ -340,5 +379,95 @@ class EventService {
         .snapshots()
         .map((snapshot) =>
             snapshot.docs.map((doc) => EventModel.fromFirestore(doc)).toList());
+  }
+
+  // イベント作成通知を送信
+  Future<void> _sendEventCreatedNotification(
+    String circleId,
+    String eventId,
+    String eventName,
+    DateTime eventDatetime,
+  ) async {
+    try {
+      final circle = await _circleService.getCircle(circleId);
+      if (circle == null) return;
+
+      // サークルメンバー全員に通知
+      final memberIds = circle.members.map((m) => m.userId).toList();
+      if (memberIds.isEmpty) return;
+
+      await _notificationService.sendBulkNotification(
+        circleId: circleId,
+        recipientUserIds: memberIds,
+        title: '新しいイベントが作成されました',
+        body: '$eventName が ${_formatDateTime(eventDatetime)} に開催されます',
+        type: NotificationType.eventCreated,
+        eventId: eventId,
+      );
+    } catch (e) {
+      AppLogger.error('Error sending event created notification: $e');
+    }
+  }
+
+  // イベント更新通知を送信
+  Future<void> _sendEventUpdatedNotification(
+    String circleId,
+    String eventId,
+    String eventName,
+    DateTime eventDatetime,
+  ) async {
+    try {
+      final circle = await _circleService.getCircle(circleId);
+      if (circle == null) return;
+
+      // サークルメンバー全員に通知
+      final memberIds = circle.members.map((m) => m.userId).toList();
+      if (memberIds.isEmpty) return;
+
+      await _notificationService.sendBulkNotification(
+        circleId: circleId,
+        recipientUserIds: memberIds,
+        title: 'イベント情報が更新されました',
+        body: '$eventName の情報が変更されました',
+        type: NotificationType.eventUpdated,
+        eventId: eventId,
+      );
+    } catch (e) {
+      AppLogger.error('Error sending event updated notification: $e');
+    }
+  }
+
+  // 定員到達通知を送信
+  Future<void> _sendCapacityReachedNotification(
+    String circleId,
+    String eventId,
+    String eventName,
+  ) async {
+    try {
+      final circle = await _circleService.getCircle(circleId);
+      if (circle == null) return;
+
+      // 管理者に通知
+      final adminIds = circle.members
+          .where((m) => m.role == 'admin')
+          .map((m) => m.userId)
+          .toList();
+      if (adminIds.isEmpty) return;
+
+      await _notificationService.sendBulkNotification(
+        circleId: circleId,
+        recipientUserIds: adminIds,
+        title: 'イベントが定員に達しました',
+        body: '$eventName の参加者が定員に達しました',
+        type: NotificationType.capacityReached,
+        eventId: eventId,
+      );
+    } catch (e) {
+      AppLogger.error('Error sending capacity reached notification: $e');
+    }
+  }
+
+  String _formatDateTime(DateTime datetime) {
+    return '${datetime.month}月${datetime.day}日 ${datetime.hour}:${datetime.minute.toString().padLeft(2, '0')}';
   }
 }

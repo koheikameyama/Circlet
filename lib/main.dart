@@ -11,6 +11,7 @@ import 'providers/auth_provider.dart';
 import 'services/deep_link_service.dart';
 import 'services/circle_service.dart';
 import 'services/logger_service.dart';
+import 'services/notification_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/circle_selection_screen.dart';
 import 'screens/participant/participant_home_screen.dart';
@@ -108,6 +109,8 @@ class CircletApp extends ConsumerStatefulWidget {
 
 class _CircletAppState extends ConsumerState<CircletApp> {
   DeepLinkService? _deepLinkService;
+  final NotificationService _notificationService = NotificationService();
+  bool _isNotificationInitialized = false;
 
   @override
   void initState() {
@@ -116,6 +119,9 @@ class _CircletAppState extends ConsumerState<CircletApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initDeepLinks();
     });
+
+    // フォアグラウンド通知のハンドリングを設定
+    _notificationService.setupForegroundNotificationHandling();
   }
 
   void _initDeepLinks() {
@@ -375,6 +381,29 @@ class _CircletAppState extends ConsumerState<CircletApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+    final authState = ref.watch(authStateProvider);
+
+    // ログイン状態を監視して通知を初期化
+    ref.listen(authStateProvider, (previous, next) {
+      if (next.value != null && previous?.value == null) {
+        // ログインしたとき
+        _notificationService.initializeNotifications(next.value!.uid);
+        _isNotificationInitialized = true;
+      } else if (next.value == null) {
+        // ログアウトしたとき
+        _isNotificationInitialized = false;
+      }
+    });
+
+    // 既にログイン済みで、まだ初期化していない場合
+    if (authState.value != null && !_isNotificationInitialized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_isNotificationInitialized) {
+          _notificationService.initializeNotifications(authState.value!.uid);
+          _isNotificationInitialized = true;
+        }
+      });
+    }
 
     return MaterialApp.router(
       title: 'Circlet - サークル管理',

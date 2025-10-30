@@ -5,10 +5,11 @@ service cloud.firestore {
     match /users/{userId} {
       // ドキュメントの読み取りとクエリを許可
       allow read, list: if request.auth != null;
-      // 自分のドキュメントのみ書き込み可能、またはcircleIdsの更新は誰でも可能（サークル管理用）
+      // 自分のドキュメントのみ書き込み可能、またはcircleIds/fcmTokenの更新は誰でも可能（サークル管理用・通知用）
       allow write: if request.auth != null &&
         (request.auth.uid == userId ||
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['circleIds', 'updatedAt']));
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['circleIds', 'updatedAt']) ||
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmToken', 'updatedAt']));
       // 新規ユーザー作成時のために create も許可
       allow create: if request.auth != null;
     }
