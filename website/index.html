@@ -7,22 +7,9 @@
     <title>Circlet - サークル管理アプリ</title>
     <link rel="icon" type="image/jpeg" href="assets/images/logo.jpeg">
     <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/common.js"></script>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="logo">
-                <img src="assets/images/logo.jpeg" alt="Circlet" class="logo-image">
-                <h1>Circlet</h1>
-            </div>
-            <nav class="nav">
-                <a href="#features">機能</a>
-                <a href="#download">ダウンロード</a>
-                <a href="privacy.html">プライバシーポリシー</a>
-            </nav>
-        </div>
-    </header>
 
     <!-- Hero Section -->
     <section class="hero">
@@ -39,9 +26,7 @@
                 </div>
             </div>
             <div class="hero-image">
-                <div class="phone-mockup">
-                    📱
-                </div>
+                <img src="assets/images/ui.jpg" alt="Circlet アプリUI" class="phone-mockup">
             </div>
         </div>
     </section>
@@ -117,50 +102,19 @@
             <p class="download-subtitle">iOS・Android対応</p>
             <div class="download-buttons">
                 <a href="#" class="store-button app-store">
-                    <span class="store-icon">🍎</span>
-                    <div>
-                        <div class="store-text">Download on the</div>
-                        <div class="store-name">App Store</div>
-                    </div>
+                    <img src="assets/images/apple_store.svg" alt="Download on the App Store" class="store-badge">
                 </a>
                 <a href="#" class="store-button google-play">
-                    <span class="store-icon">📱</span>
-                    <div>
-                        <div class="store-text">GET IT ON</div>
-                        <div class="store-name">Google Play</div>
-                    </div>
+                    <img src="assets/images/google_play.png" alt="Get it on Google Play" class="store-badge">
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3>Circlet</h3>
-                    <p>サークル運営を、もっとスマートに</p>
-                </div>
-                <div class="footer-section">
-                    <h4>リンク</h4>
-                    <ul>
-                        <li><a href="#features">機能</a></li>
-                        <li><a href="#download">ダウンロード</a></li>
-                        <li><a href="privacy.html">プライバシーポリシー</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4>サポート</h4>
-                    <ul>
-                        <li><a href="mailto:support@circlet.jp">お問い合わせ</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 Circlet. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    <script>
+        // ヘッダーとフッターを読み込み
+        loadHeader(true);
+        loadFooter();
+    </script>
 </body>
 </html>

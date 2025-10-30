@@ -7,6 +7,7 @@
     <title>プライバシーポリシー - Circlet</title>
     <link rel="icon" type="image/jpeg" href="assets/images/logo.jpeg">
     <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/common.js"></script>
     <style>
         .privacy-container {
             max-width: 900px;
@@ -60,20 +61,6 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="logo">
-                <h1>🎯 Circlet</h1>
-            </div>
-            <nav class="nav">
-                <a href="index.html">ホーム</a>
-                <a href="index.html#features">機能</a>
-                <a href="index.html#download">ダウンロード</a>
-            </nav>
-        </div>
-    </header>
-
     <div class="privacy-container">
         <a href="index.html" class="back-link">← ホームに戻る</a>
         
@@ -221,13 +208,10 @@
         </p>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-bottom">
-                <p>&copy; 2025 Circlet. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    <script>
+        // ヘッダーとフッターを読み込み
+        loadHeader(false);
+        loadFooter();
+    </script>
 </body>
 </html>

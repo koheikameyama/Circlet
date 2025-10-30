@@ -5,9 +5,9 @@
 }
 
 :root {
-    --primary-color: #667eea;
-    --primary-dark: #5568d3;
-    --secondary-color: #764ba2;
+    --primary-color: #0476b9;
+    --primary-dark: #035a8f;
+    --secondary-color: #0492db;
     --text-color: #333;
     --text-light: #666;
     --bg-light: #f8f9fa;
@@ -150,7 +150,11 @@ body {
 }
 
 .phone-mockup {
-    font-size: 15rem;
+    max-width: 100%;
+    width: 200px;
+    height: auto;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: float 3s ease-in-out infinite;
 }
 
@@ -260,36 +264,19 @@ section {
 }
 
 .store-button {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    background: var(--white);
-    color: var(--text-color);
-    padding: 1rem 2rem;
-    border-radius: 12px;
+    display: inline-block;
     text-decoration: none;
-    transition: transform 0.3s, box-shadow 0.3s;
-    box-shadow: var(--shadow);
+    transition: transform 0.3s, opacity 0.3s;
 }
 
 .store-button:hover {
     transform: translateY(-3px);
-    box-shadow: var(--shadow-lg);
+    opacity: 0.8;
 }
 
-.store-icon {
-    font-size: 3rem;
-}
-
-.store-text {
-    font-size: 0.75rem;
-    text-align: left;
-}
-
-.store-name {
-    font-size: 1.25rem;
-    font-weight: 700;
-    text-align: left;
+.store-badge {
+    height: 60px;
+    width: auto;
 }
 
 /* Footer */
@@ -353,7 +340,7 @@ section {
     }
 
     .phone-mockup {
-        font-size: 8rem;
+        width: 150px;
     }
 
     .nav {
