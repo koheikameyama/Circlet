@@ -86,6 +86,7 @@ dependencies:
 
   # Routing
   go_router: ^13.0.0
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -138,3 +139,13 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+flutter_launcher_icons:
+  image_path_android: assets/launcher_icon/icon_android.jpeg
+  adaptive_icon_background: '#000000' #iconの背景色
+  adaptive_icon_foreground: assets/launcher_icon/icon_android.jpeg
+  image_path_ios: assets/launcher_icon/icon_ios.jpeg
+  android: true
+  adaptive_icon_padding: true
+  min_sdk_android: 30 #Androidの最小SDKバージョン
+  ios: true  

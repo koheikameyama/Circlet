@@ -45,6 +45,14 @@ final signOutProvider = Provider<Future<void> Function()>((ref) {
 
 // 特定のユーザー情報を取得するProvider
 final userDataProvider = StreamProvider.autoDispose.family<UserModel?, String>((ref, userId) {
+  // 認証状態を監視
+  final authState = ref.watch(authStateProvider);
+
+  // ログアウトされたらnullを返す（Firestoreにアクセスしない）
+  if (authState.value == null) {
+    return Stream.value(null);
+  }
+
   final authService = ref.watch(authServiceProvider);
   return authService.getUserDataStream(userId);
 });
