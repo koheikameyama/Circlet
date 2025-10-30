@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "442058714841",
-    "project_id": "grumane-3d818",
-    "storage_bucket": "grumane-3d818.firebasestorage.app"
+    "project_number": "376768263574",
+    "project_id": "circlet-9ee47",
+    "storage_bucket": "circlet-9ee47.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:442058714841:android:a3bac48946ab3e658158c8",
+        "mobilesdk_app_id": "1:376768263574:android:67876195466d3dbcfd99b7",
         "android_client_info": {
-          "package_name": "com.grumane.grumane"
+          "package_name": "com.circlet.app"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC0siHjYb8rgGrseNUsr5Ik5Zv0aQspBkU"
+          "current_key": "AIzaSyCMA2ptMxesVbbhAjkb1nq5n7Njerho1WU"
         }
       ],
       "services": {

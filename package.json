@@ -1,7 +1,7 @@
 {
-  "name": "grumane",
+  "name": "circlet",
   "version": "1.0.0",
-  "description": "サークル管理アプリ",
+  "description": "Circlet - サークル管理アプリ",
   "scripts": {
     "prepare": "husky install"
   },

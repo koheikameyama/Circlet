@@ -1,45 +1,50 @@
 # Firebase セットアップガイド
 
-このドキュメントでは、Grumaneアプリで使用するFirebaseプロジェクトのセットアップ手順を説明します。
+このドキュメントでは、Circlet アプリで使用する Firebase プロジェクトのセットアップ手順を説明します。
 
-## 1. Firebaseプロジェクトの作成
+## 1. Firebase プロジェクトの作成
 
-### 1.1 Firebase Consoleにアクセス
+### 1.1 Firebase Console にアクセス
+
 1. [Firebase Console](https://console.firebase.google.com/)にアクセス
-2. Googleアカウントでログイン
+2. Google アカウントでログイン
 3. 「プロジェクトを追加」をクリック
 
 ### 1.2 プロジェクト情報の入力
-1. **プロジェクト名**: `grumane` または任意の名前を入力
-2. Google Analyticsの有効化（推奨: 有効）
-3. Analyticsアカウントの選択または新規作成
+
+1. **プロジェクト名**: `Circlet` または任意の名前を入力
+2. Google Analytics の有効化（推奨: 有効）
+3. Analytics アカウントの選択または新規作成
 4. 「プロジェクトを作成」をクリック
 
-## 2. Firebaseアプリの登録
+## 2. Firebase アプリの登録
 
-### 2.1 iOSアプリの登録
-1. Firebase Consoleのプロジェクトダッシュボードで「iOS」アイコンをクリック
+### 2.1 iOS アプリの登録
+
+1. Firebase Console のプロジェクトダッシュボードで「iOS」アイコンをクリック
 2. 以下の情報を入力:
-   - **iOSバンドルID**: `com.grumane.grumane`
-   - **アプリのニックネーム**: `Grumane iOS` (任意)
+   - **iOS バンドル ID**: `com.Circlet.Circlet`
+   - **アプリのニックネーム**: `Circlet iOS` (任意)
    - **App Store ID**: (後で追加可能)
 3. 「アプリを登録」をクリック
 4. `GoogleService-Info.plist`ファイルをダウンロード
 5. ダウンロードしたファイルを `ios/Runner/` ディレクトリに配置
 
-### 2.2 Androidアプリの登録
-1. Firebase Consoleのプロジェクトダッシュボードで「Android」アイコンをクリック
+### 2.2 Android アプリの登録
+
+1. Firebase Console のプロジェクトダッシュボードで「Android」アイコンをクリック
 2. 以下の情報を入力:
-   - **Androidパッケージ名**: `com.grumane.grumane`
-   - **アプリのニックネーム**: `Grumane Android` (任意)
+   - **Android パッケージ名**: `com.Circlet.Circlet`
+   - **アプリのニックネーム**: `Circlet Android` (任意)
    - **デバッグ用の署名証明書 SHA-1**: (任意、後で追加可能)
 3. 「アプリを登録」をクリック
 4. `google-services.json`ファイルをダウンロード
 5. ダウンロードしたファイルを `android/app/` ディレクトリに配置
 
-## 3. FlutterFire CLIで設定を生成
+## 3. FlutterFire CLI で設定を生成
 
-### 3.1 Firebase CLIのインストール（未インストールの場合）
+### 3.1 Firebase CLI のインストール（未インストールの場合）
+
 ```bash
 # Node.jsがインストールされている場合
 npm install -g firebase-tools
@@ -48,12 +53,14 @@ npm install -g firebase-tools
 brew install firebase-cli
 ```
 
-### 3.2 Firebaseにログイン
+### 3.2 Firebase にログイン
+
 ```bash
 firebase login
 ```
 
-### 3.3 FlutterFire CLIの実行
+### 3.3 FlutterFire CLI の実行
+
 ```bash
 # プロジェクトディレクトリで実行
 export PATH="$HOME/flutter/bin:$PATH"
@@ -62,28 +69,32 @@ flutterfire configure
 ```
 
 このコマンドは以下を行います:
-- Firebaseプロジェクトの選択
-- `lib/firebase_options.dart`ファイルの自動生成
-- iOS/Android設定の自動更新
 
-## 4. Firebaseサービスの有効化
+- Firebase プロジェクトの選択
+- `lib/firebase_options.dart`ファイルの自動生成
+- iOS/Android 設定の自動更新
+
+## 4. Firebase サービスの有効化
 
 ### 4.1 Authentication（認証）の設定
+
 1. Firebase Console > 「Authentication」
 2. 「始める」をクリック
 3. 「Sign-in method」タブを選択
 4. 以下のプロバイダーを有効化:
-   - **匿名**: 有効にする（LINE認証のフォールバック用）
+   - **匿名**: 有効にする（LINE 認証のフォールバック用）
    - **Google**: （オプション）後で追加可能
 
-### 4.2 Cloud Firestoreの設定
+### 4.2 Cloud Firestore の設定
+
 1. Firebase Console > 「Firestore Database」
 2. 「データベースの作成」をクリック
 3. **本番環境モード**を選択
 4. ロケーション: `asia-northeast1` (東京) を推奨
 5. 「有効にする」をクリック
 
-#### Firestoreセキュリティルールの設定
+#### Firestore セキュリティルールの設定
+
 1. Firestore Database > 「ルール」タブ
 2. 以下のルールをコピー＆ペースト:
 
@@ -133,14 +144,16 @@ service cloud.firestore {
 
 3. 「公開」をクリック
 
-### 4.3 Cloud Storageの設定
+### 4.3 Cloud Storage の設定
+
 1. Firebase Console > 「Storage」
 2. 「始める」をクリック
 3. セキュリティルールで「本番環境モード」を選択
 4. ロケーション: `asia-northeast1` (東京) を推奨
 5. 「完了」をクリック
 
-#### Storageセキュリティルールの設定
+#### Storage セキュリティルールの設定
+
 ```javascript
 rules_version = '2';
 service firebase.storage {
@@ -167,20 +180,23 @@ service firebase.storage {
 ```
 
 ### 4.4 Cloud Messaging（FCM）の設定
-1. Firebase Console > 「Cloud Messaging」
-2. iOS/Androidアプリでプッシュ通知を有効化
 
-**iOS追加設定:**
-1. Xcodeでプロジェクトを開く: `open ios/Runner.xcworkspace`
+1. Firebase Console > 「Cloud Messaging」
+2. iOS/Android アプリでプッシュ通知を有効化
+
+**iOS 追加設定:**
+
+1. Xcode でプロジェクトを開く: `open ios/Runner.xcworkspace`
 2. Runner > Signing & Capabilities
 3. 「+ Capability」をクリック
 4. 「Push Notifications」を追加
 5. 「Background Modes」を追加し、「Remote notifications」を有効化
 
-**Android追加設定:**
-- 自動的に設定されます（google-services.jsonに含まれています）
+**Android 追加設定:**
 
-## 5. Firestoreインデックスの作成
+- 自動的に設定されます（google-services.json に含まれています）
+
+## 5. Firestore インデックスの作成
 
 複雑なクエリを使用するため、以下のインデックスを作成します:
 
@@ -188,14 +204,17 @@ service firebase.storage {
 2. 「複合」タブで以下のインデックスを作成:
 
 ### events コレクション
+
 - フィールド: `circleId` (昇順), `datetime` (昇順)
 - クエリスコープ: コレクション
 
 ### payments コレクション
+
 - フィールド: `userId` (昇順), `status` (昇順)
 - クエリスコープ: コレクション
 
 ### notifications コレクション
+
 - フィールド: `circleId` (昇順), `sentAt` (降順)
 - クエリスコープ: コレクション
 
@@ -204,6 +223,7 @@ service firebase.storage {
 ## 6. LINE Login の設定
 
 ### 6.1 LINE Developers Console
+
 1. [LINE Developers Console](https://developers.line.biz/console/)にアクセス
 2. プロバイダーを作成（既存のプロバイダーがある場合はそれを使用）
 3. 新しいチャネルを作成:
@@ -211,12 +231,14 @@ service firebase.storage {
    - アプリタイプ: **ネイティブアプリ**
 4. 必要情報を入力して作成
 
-### 6.2 Channel ID と Channel Secretの取得
+### 6.2 Channel ID と Channel Secret の取得
+
 1. 作成したチャネルの「Basic settings」タブ
 2. **Channel ID** をコピー
 3. **Channel Secret** をコピー
 
-### 6.3 iOS設定
+### 6.3 iOS 設定
+
 `ios/Runner/Info.plist`に以下を追加:
 
 ```xml
@@ -242,7 +264,8 @@ service firebase.storage {
 </array>
 ```
 
-### 6.4 Android設定
+### 6.4 Android 設定
+
 `android/app/src/main/AndroidManifest.xml`の`<application>`タグ内に追加:
 
 ```xml
@@ -256,26 +279,30 @@ service firebase.storage {
         <category android:name="android.intent.category.BROWSABLE" />
         <data
             android:host="authorize"
-            android:scheme="line3rdp.com.grumane.grumane" />
+            android:scheme="line3rdp.com.Circlet.Circlet" />
     </intent-filter>
 </activity>
 ```
 
-### 6.5 Callback URLの設定
+### 6.5 Callback URL の設定
+
 LINE Developers Console > チャネル > 「LINE Login」タブ:
+
 - **Callback URL**:
-  - iOS: `line3rdp.com.grumane.grumane://authorize`
-  - Android: `line3rdp.com.grumane.grumane://authorize`
+  - iOS: `line3rdp.com.Circlet.Circlet://authorize`
+  - Android: `line3rdp.com.Circlet.Circlet://authorize`
 
 ## 7. アプリのビルドと実行
 
 ### 7.1 依存関係の確認
+
 ```bash
 export PATH="$HOME/flutter/bin:$PATH"
 flutter pub get
 ```
 
 ### 7.2 ビルドエラーの解決
+
 ```bash
 # iOSの場合
 cd ios
@@ -289,6 +316,7 @@ cd ..
 ```
 
 ### 7.3 アプリの実行
+
 ```bash
 # iOS
 flutter run -d ios
@@ -300,24 +328,29 @@ flutter run -d android
 ## トラブルシューティング
 
 ### エラー: [core/no-app] No Firebase App '[DEFAULT]' has been created
+
 - `firebase_options.dart`が正しく生成されているか確認
 - `main.dart`で`Firebase.initializeApp()`が呼ばれているか確認
 
 ### エラー: Cloud Firestore permission denied
-- Firestoreセキュリティルールが正しく設定されているか確認
+
+- Firestore セキュリティルールが正しく設定されているか確認
 - ユーザーが認証済みか確認
 
-### iOS: Push Notificationsが動作しない
-- Xcodeで「Push Notifications」capabilityが追加されているか確認
-- Apple Developer Portalで証明書が正しく設定されているか確認
+### iOS: Push Notifications が動作しない
+
+- Xcode で「Push Notifications」capability が追加されているか確認
+- Apple Developer Portal で証明書が正しく設定されているか確認
 
 ### Android: ビルドエラー
-- `android/build.gradle`のGradleバージョンを確認
-- `android/app/build.gradle`のminSdkVersionが21以上であることを確認
+
+- `android/build.gradle`の Gradle バージョンを確認
+- `android/app/build.gradle`の minSdkVersion が 21 以上であることを確認
 
 ## 次のステップ
 
 セットアップが完了したら:
+
 1. テストユーザーでログインを試す
 2. サークルを作成する
 3. イベントを作成して参加機能をテスト

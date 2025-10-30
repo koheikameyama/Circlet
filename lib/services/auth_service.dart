@@ -34,9 +34,6 @@ class AuthService {
 
       AppLogger.info('Attempting LINE login with email: $email');
 
-      // 既存の匿名認証ユーザーをチェック（移行用）
-      final existingAnonymousUser = await _findUserByLineId(lineUserId);
-
       UserCredential credential;
 
       try {
@@ -64,26 +61,13 @@ class AuthService {
         );
         AppLogger.info('Created new email/password account: ${credential.user!.uid}');
 
-        // 既存の匿名認証ユーザーがいる場合、データを移行
-        if (existingAnonymousUser != null) {
-          AppLogger.info('Migrating data from anonymous user: ${existingAnonymousUser.userId}');
-          await _migrateUserData(
-            oldUserId: existingAnonymousUser.userId,
-            newUserId: credential.user!.uid,
-            lineUserId: lineUserId,
-            name: name,
-            profileImageUrl: profileImageUrl,
-            circleIds: existingAnonymousUser.circleIds,
-          );
-        } else {
-          // 新規ユーザーの場合、ユーザー情報を保存
-          await _saveUserToFirestore(
-            userId: credential.user!.uid,
-            lineUserId: lineUserId,
-            name: name,
-            profileImageUrl: profileImageUrl,
-          );
-        }
+        // 新規ユーザーの場合、ユーザー情報を保存
+        await _saveUserToFirestore(
+          userId: credential.user!.uid,
+          lineUserId: lineUserId,
+          name: name,
+          profileImageUrl: profileImageUrl,
+        );
       }
 
       return credential;

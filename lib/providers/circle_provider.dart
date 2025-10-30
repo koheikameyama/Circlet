@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/circle_model.dart';
 import '../services/circle_service.dart';
+import 'auth_provider.dart';
 
 // CircleServiceのProvider
 final circleServiceProvider = Provider<CircleService>((ref) => CircleService());
@@ -10,12 +11,28 @@ final selectedCircleIdProvider = StateProvider<String?>((ref) => null);
 
 // サークル情報のProvider
 final circleProvider = StreamProvider.autoDispose.family<CircleModel?, String>((ref, circleId) {
+  // 認証状態を監視
+  final authState = ref.watch(authStateProvider);
+
+  // ログアウトされたらnullを返す（Firestoreにアクセスしない）
+  if (authState.value == null) {
+    return Stream.value(null);
+  }
+
   final circleService = ref.watch(circleServiceProvider);
   return circleService.getCircleStream(circleId);
 });
 
 // 選択中のサークル情報のProvider
 final selectedCircleProvider = StreamProvider.autoDispose<CircleModel?>((ref) {
+  // 認証状態を監視
+  final authState = ref.watch(authStateProvider);
+
+  // ログアウトされたらnullを返す（Firestoreにアクセスしない）
+  if (authState.value == null) {
+    return Stream.value(null);
+  }
+
   final circleId = ref.watch(selectedCircleIdProvider);
   if (circleId == null) {
     return Stream.value(null);
@@ -27,6 +44,14 @@ final selectedCircleProvider = StreamProvider.autoDispose<CircleModel?>((ref) {
 
 // ユーザーが所属するサークル一覧のProvider
 final userCirclesProvider = StreamProvider.autoDispose.family<List<CircleModel>, String>((ref, userId) {
+  // 認証状態を監視
+  final authState = ref.watch(authStateProvider);
+
+  // ログアウトされたら空のリストを返す（Firestoreにアクセスしない）
+  if (authState.value == null) {
+    return Stream.value([]);
+  }
+
   final circleService = ref.watch(circleServiceProvider);
   return circleService.getUserCircles(userId);
 });

@@ -1,6 +1,6 @@
 # VSCode デバッグガイド
 
-このガイドでは、VSCodeでGrumaneアプリをデバッグする方法を説明します。
+このガイドでは、VSCode で Circlet アプリをデバッグする方法を説明します。
 
 ## 前提条件
 
@@ -12,7 +12,7 @@
 
 ## エミュレータ/シミュレータの起動
 
-### iOSシミュレータの起動
+### iOS シミュレータの起動
 
 ```bash
 # 利用可能なシミュレータを確認
@@ -22,12 +22,13 @@ xcrun simctl list devices
 open -a Simulator
 ```
 
-または、VSCodeから:
-1. `Cmd + Shift + P` (Macの場合)
-2. 「Flutter: Select Device」を選択
-3. iOSシミュレータを選択
+または、VSCode から:
 
-### Androidエミュレータの起動
+1. `Cmd + Shift + P` (Mac の場合)
+2. 「Flutter: Select Device」を選択
+3. iOS シミュレータを選択
+
+### Android エミュレータの起動
 
 ```bash
 # 利用可能なエミュレータを確認
@@ -37,20 +38,20 @@ emulator -list-avds
 emulator -avd <エミュレータ名>
 ```
 
-または、Android Studioから起動
+または、Android Studio から起動
 
-## VSCodeでのデバッグ方法
+## VSCode でのデバッグ方法
 
-### 方法1: デバッグパネルから起動
+### 方法 1: デバッグパネルから起動
 
-1. VSCodeでプロジェクトを開く
+1. VSCode でプロジェクトを開く
 2. 左サイドバーの「実行とデバッグ」アイコンをクリック（虫アイコン）
 3. 上部のドロップダウンから起動設定を選択:
-   - **Debug (iOS Simulator)**: iOSシミュレータでデバッグ
-   - **Debug (Android Emulator)**: Androidエミュレータでデバッグ
+   - **Debug (iOS Simulator)**: iOS シミュレータでデバッグ
+   - **Debug (Android Emulator)**: Android エミュレータでデバッグ
 4. 緑の再生ボタン（▶）をクリック、または `F5` を押す
 
-### 方法2: ショートカットキー
+### 方法 2: ショートカットキー
 
 - `F5`: デバッグ開始
 - `Shift + F5`: デバッグ停止
@@ -59,7 +60,7 @@ emulator -avd <エミュレータ名>
 - `F11`: ステップイン
 - `Shift + F11`: ステップアウト
 
-### 方法3: コードエディタから直接実行
+### 方法 3: コードエディタから直接実行
 
 1. `lib/main.dart` を開く
 2. エディタ右上の「Run」または「Debug」ボタンをクリック
@@ -83,9 +84,9 @@ void _handleLineLogin() async {
 }
 ```
 
-## Firebase Emulatorの使用
+## Firebase Emulator の使用
 
-### Emulatorのセットアップ
+### Emulator のセットアップ
 
 ```bash
 # Firebase CLIのインストール（未インストールの場合）
@@ -98,7 +99,7 @@ firebase login
 firebase init emulators
 ```
 
-### Emulatorの起動
+### Emulator の起動
 
 ```bash
 # プロジェクトディレクトリで実行
@@ -106,12 +107,13 @@ firebase emulators:start
 ```
 
 これにより以下のサービスが起動します:
+
 - **Authentication**: http://localhost:9099
 - **Firestore**: http://localhost:8080
 - **Storage**: http://localhost:9199
 - **Emulator UI**: http://localhost:4000
 
-### Emulator UIの使い方
+### Emulator UI の使い方
 
 1. ブラウザで http://localhost:4000 を開く
 2. 以下を確認・操作できます:
@@ -121,11 +123,11 @@ firebase emulators:start
 
 ### デバッグモードでの動作
 
-アプリを**デバッグモード**で起動すると、自動的にFirebase Emulatorに接続します。
+アプリを**デバッグモード**で起動すると、自動的に Firebase Emulator に接続します。
 
 - `lib/config/firebase_emulator_config.dart` で制御
-- デバッグビルドの場合のみEmulatorに接続
-- リリースビルドは本番Firebaseに接続
+- デバッグビルドの場合のみ Emulator に接続
+- リリースビルドは本番 Firebase に接続
 
 ## ホットリロード
 
@@ -134,12 +136,13 @@ firebase emulators:start
 - `r`: ホットリロード（ウィジェットの再ビルド）
 - `R`: ホットリスタート（アプリの完全再起動）
 
-または、VSCodeの場合:
+または、VSCode の場合:
+
 - 保存（`Cmd + S` / `Ctrl + S`）すると自動的にホットリロードされます
 
 ## デバッグコンソールの使用
 
-### print文によるログ出力
+### print 文によるログ出力
 
 ```dart
 print('デバッグ: ユーザーID = $userId');
@@ -174,10 +177,10 @@ if (kDebugMode) {
 ### Profile モードで起動
 
 1. デバッグパネルで「Profile (iOS)」または「Profile (Android)」を選択
-2. Flutter DevToolsが自動的に開きます
+2. Flutter DevTools が自動的に開きます
 3. パフォーマンスの問題を分析
 
-### DevToolsの起動
+### DevTools の起動
 
 ```bash
 export PATH="$HOME/flutter/bin:$PATH"
@@ -196,22 +199,25 @@ flutter devices
 ```
 
 出力がない場合:
-- iOS: Xcodeでシミュレータを起動
-- Android: Android StudioでAVDを起動
+
+- iOS: Xcode でシミュレータを起動
+- Android: Android Studio で AVD を起動
 
 ### ホットリロードが動作しない
 
 - `Cmd + Shift + P` → 「Flutter: Hot Reload」を実行
 - それでも動作しない場合は「Flutter: Hot Restart」
 
-### Firebase Emulator接続エラー
+### Firebase Emulator 接続エラー
 
-1. Emulatorが起動しているか確認:
+1. Emulator が起動しているか確認:
+
 ```bash
 firebase emulators:start
 ```
 
 2. ポートが使用されていないか確認:
+
 ```bash
 lsof -i :8080
 lsof -i :9099
@@ -227,7 +233,7 @@ flutter pub get
 flutter run
 ```
 
-## 便利なVSCodeコマンド
+## 便利な VSCode コマンド
 
 `Cmd + Shift + P` (Mac) / `Ctrl + Shift + P` (Windows/Linux) で以下を実行:
 
@@ -235,18 +241,20 @@ flutter run
 - `Flutter: Select Device`: デバイス選択
 - `Flutter: Hot Reload`: ホットリロード
 - `Flutter: Hot Restart`: ホットリスタート
-- `Flutter: Open DevTools`: DevToolsを開く
+- `Flutter: Open DevTools`: DevTools を開く
 - `Flutter: Clean Project`: プロジェクトをクリーン
 - `Dart: Add Dependency`: パッケージを追加
 
 ## 推奨ワークフロー
 
-1. **Firebase Emulatorを起動**
+1. **Firebase Emulator を起動**
+
 ```bash
 firebase emulators:start
 ```
 
 2. **エミュレータ/シミュレータを起動**
+
 ```bash
 # iOS
 open -a Simulator
@@ -255,17 +263,19 @@ open -a Simulator
 emulator -avd <エミュレータ名>
 ```
 
-3. **VSCodeでデバッグ開始**
+3. **VSCode でデバッグ開始**
+
    - `F5` を押すか、デバッグパネルから起動
 
 4. **コード編集 & ホットリロード**
+
    - コードを編集して保存（自動でホットリロード）
 
-5. **Emulator UIでデータ確認**
+5. **Emulator UI でデータ確認**
    - http://localhost:4000 でデータベース内容を確認
 
 ## さらに詳しく
 
-- [Flutter公式ドキュメント - デバッグ](https://docs.flutter.dev/testing/debugging)
-- [VSCode Flutter拡張機能](https://marketplace.visualstudio.com/items?itemName=Dart-Code.flutter)
+- [Flutter 公式ドキュメント - デバッグ](https://docs.flutter.dev/testing/debugging)
+- [VSCode Flutter 拡張機能](https://marketplace.visualstudio.com/items?itemName=Dart-Code.flutter)
 - [Firebase Emulator Suite](https://firebase.google.com/docs/emulator-suite)

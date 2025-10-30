@@ -215,7 +215,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 // アプリ名
                 Text(
-                  'Grumane',
+                  'Circlet',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Theme.of(context).colorScheme.primary,

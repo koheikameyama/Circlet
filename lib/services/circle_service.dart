@@ -78,14 +78,16 @@ class CircleService {
   // ユーザーが所属するサークル一覧を取得
   Stream<List<CircleModel>> getUserCircles(String userId) async* {
     // ユーザー情報を取得してcircleIdsを取得
-    await for (final userDoc in _firestore.collection('users').doc(userId).snapshots()) {
+    await for (final userDoc
+        in _firestore.collection('users').doc(userId).snapshots()) {
       if (!userDoc.exists) {
         yield [];
         continue;
       }
 
       final userData = userDoc.data();
-      final circleIds = (userData?['circleIds'] as List<dynamic>?)?.cast<String>() ?? [];
+      final circleIds =
+          (userData?['circleIds'] as List<dynamic>?)?.cast<String>() ?? [];
 
       if (circleIds.isEmpty) {
         yield [];
@@ -207,19 +209,22 @@ class CircleService {
       final circle = await getCircle(circleId);
       if (circle == null) return;
 
-      final updatedMembers = circle.members.map((m) {
-        if (m.userId == userId) {
-          return CircleMember(
-            userId: m.userId,
-            role: m.role,
-            tags: tags,
-            joinedAt: m.joinedAt,
-            displayName: m.displayName,
-            profileImageUrl: m.profileImageUrl,
-          );
-        }
-        return m;
-      }).map((m) => m.toMap()).toList();
+      final updatedMembers = circle.members
+          .map((m) {
+            if (m.userId == userId) {
+              return CircleMember(
+                userId: m.userId,
+                role: m.role,
+                tags: tags,
+                joinedAt: m.joinedAt,
+                displayName: m.displayName,
+                profileImageUrl: m.profileImageUrl,
+              );
+            }
+            return m;
+          })
+          .map((m) => m.toMap())
+          .toList();
 
       await _firestore.collection('circles').doc(circleId).update({
         'members': updatedMembers,
@@ -245,29 +250,33 @@ class CircleService {
 
       // 少なくとも1人の管理者が必要
       if (role != 'admin') {
-        final adminCount = circle.members.where((m) => m.role == 'admin').length;
-        final isCurrentUserAdmin = circle.members
-            .firstWhere((m) => m.userId == userId)
-            .role == 'admin';
+        final adminCount =
+            circle.members.where((m) => m.role == 'admin').length;
+        final isCurrentUserAdmin =
+            circle.members.firstWhere((m) => m.userId == userId).role ==
+                'admin';
 
         if (isCurrentUserAdmin && adminCount <= 1) {
           throw Exception('少なくとも1人の管理者が必要です');
         }
       }
 
-      final updatedMembers = circle.members.map((m) {
-        if (m.userId == userId) {
-          return CircleMember(
-            userId: m.userId,
-            role: role,
-            tags: m.tags,
-            joinedAt: m.joinedAt,
-            displayName: m.displayName,
-            profileImageUrl: m.profileImageUrl,
-          );
-        }
-        return m;
-      }).map((m) => m.toMap()).toList();
+      final updatedMembers = circle.members
+          .map((m) {
+            if (m.userId == userId) {
+              return CircleMember(
+                userId: m.userId,
+                role: role,
+                tags: m.tags,
+                joinedAt: m.joinedAt,
+                displayName: m.displayName,
+                profileImageUrl: m.profileImageUrl,
+              );
+            }
+            return m;
+          })
+          .map((m) => m.toMap())
+          .toList();
 
       await _firestore.collection('circles').doc(circleId).update({
         'members': updatedMembers,
@@ -289,19 +298,22 @@ class CircleService {
       final circle = await getCircle(circleId);
       if (circle == null) return;
 
-      final updatedMembers = circle.members.map((m) {
-        if (m.userId == userId) {
-          return CircleMember(
-            userId: m.userId,
-            role: m.role,
-            tags: m.tags,
-            joinedAt: m.joinedAt,
-            displayName: displayName,
-            profileImageUrl: m.profileImageUrl,
-          );
-        }
-        return m;
-      }).map((m) => m.toMap()).toList();
+      final updatedMembers = circle.members
+          .map((m) {
+            if (m.userId == userId) {
+              return CircleMember(
+                userId: m.userId,
+                role: m.role,
+                tags: m.tags,
+                joinedAt: m.joinedAt,
+                displayName: displayName,
+                profileImageUrl: m.profileImageUrl,
+              );
+            }
+            return m;
+          })
+          .map((m) => m.toMap())
+          .toList();
 
       await _firestore.collection('circles').doc(circleId).update({
         'members': updatedMembers,
@@ -323,19 +335,22 @@ class CircleService {
       final circle = await getCircle(circleId);
       if (circle == null) return;
 
-      final updatedMembers = circle.members.map((m) {
-        if (m.userId == userId) {
-          return CircleMember(
-            userId: m.userId,
-            role: m.role,
-            tags: m.tags,
-            joinedAt: m.joinedAt,
-            displayName: m.displayName,
-            profileImageUrl: profileImageUrl,
-          );
-        }
-        return m;
-      }).map((m) => m.toMap()).toList();
+      final updatedMembers = circle.members
+          .map((m) {
+            if (m.userId == userId) {
+              return CircleMember(
+                userId: m.userId,
+                role: m.role,
+                tags: m.tags,
+                joinedAt: m.joinedAt,
+                displayName: m.displayName,
+                profileImageUrl: profileImageUrl,
+              );
+            }
+            return m;
+          })
+          .map((m) => m.toMap())
+          .toList();
 
       await _firestore.collection('circles').doc(circleId).update({
         'members': updatedMembers,
@@ -522,8 +537,7 @@ class CircleService {
 
   // 招待リンクのURLを生成（Firebase Hosting URL）
   String generateInviteUrl(String inviteId) {
-    // Firebase Hostingのドメインを使用
-    return 'https://grumane-3d818.web.app/invite/$inviteId';
+    return 'circlet://invite/$inviteId';
   }
 
   // 招待リンク用のトークンを生成（旧メソッド - 互換性のため残す）
