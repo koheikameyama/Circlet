@@ -16,17 +16,20 @@
 
 ```
 Circlet/
-├── website/              # Webサイトのソースファイル
-│   ├── index.html       # アプリ紹介ページ
-│   ├── privacy.html     # プライバシーポリシー
-│   └── assets/
-│       └── css/
-│           └── style.css # スタイルシート
 ├── web/                  # Firebase Hosting公開ディレクトリ
-│   ├── index.html       # トップページ（websiteからコピー）
-│   ├── privacy.html     # プライバシーポリシー（websiteからコピー）
+│   ├── index.html       # トップページ（アプリ紹介）
+│   ├── privacy.html     # プライバシーポリシー
 │   ├── invite.html      # 招待ページ
-│   ├── assets/          # CSS・画像（websiteからコピー）
+│   ├── assets/
+│   │   ├── css/
+│   │   │   └── style.css    # スタイルシート
+│   │   ├── js/
+│   │   │   └── common.js    # 共通ヘッダー・フッター
+│   │   └── images/
+│   │       ├── logo.jpeg        # サービスロゴ
+│   │       ├── ui.jpg           # アプリUI画像
+│   │       ├── apple_store.svg  # App Storeバッジ
+│   │       └── google_play.png  # Google Playバッジ
 │   └── .well-known/     # Universal Links・App Links設定
 └── firebase.json        # Firebase Hosting設定
 ```
@@ -62,21 +65,24 @@ Circlet/
 
 ### Webサイトのコンテンツを編集
 
-1. **ソースファイルを編集**
+1. **ファイルを直接編集**
    ```bash
    # アプリ紹介ページを編集
-   code website/index.html
+   code web/index.html
 
    # プライバシーポリシーを編集
-   code website/privacy.html
+   code web/privacy.html
 
    # CSSを編集
-   code website/assets/css/style.css
+   code web/assets/css/style.css
+
+   # 共通ヘッダー・フッターを編集
+   code web/assets/js/common.js
    ```
 
 2. **デプロイ**
    ```bash
-   # コピー＆デプロイを一括実行
+   # Firebase Hostingにデプロイ
    npm run deploy:website
    ```
 
@@ -92,7 +98,7 @@ Circlet/
 
 アプリ公開後、以下のファイルを編集してストアリンクを更新してください：
 
-**website/index.html** (2箇所)
+**web/index.html** (2箇所)
 ```html
 <!-- App Storeリンク -->
 <a href="YOUR_APP_STORE_URL" class="store-button app-store">
@@ -101,22 +107,49 @@ Circlet/
 <a href="YOUR_GOOGLE_PLAY_URL" class="store-button google-play">
 ```
 
-更新後、デプロイを忘れずに！
+更新後、デプロイを忘れずに：
+```bash
+npm run deploy:website
+```
 
 ## 🎯 SEO最適化
 
 各ページには以下のメタタグが設定されています：
 
+### 基本メタタグ
 ```html
 <meta name="description" content="...">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="keywords" content="...">
+<meta name="author" content="Circlet">
+<meta name="robots" content="index, follow">
 ```
 
-必要に応じて、以下を追加することを検討してください：
-- Open Graphタグ（SNSシェア用）
-- Twitterカード
-- ファビコン
-- サイトマップ
+### Open Graphタグ（Facebook、LINE等のSNSシェア用）
+```html
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://circlet.jp/">
+<meta property="og:title" content="Circlet - サークル管理アプリ">
+<meta property="og:description" content="...">
+<meta property="og:image" content="https://circlet.jp/assets/images/ui.jpg">
+<meta property="og:site_name" content="Circlet">
+<meta property="og:locale" content="ja_JP">
+```
+
+### Twitterカード
+```html
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="...">
+<meta name="twitter:description" content="...">
+<meta name="twitter:image" content="...">
+```
+
+### その他
+- ファビコン: `assets/images/logo.jpeg`
+- テーマカラー: `#0476b9`（ブラウザのアドレスバーの色）
+
+### 今後の追加検討
+- サイトマップ（sitemap.xml）
+- Google Analytics
 
 ## 📱 レスポンシブデザイン
 
@@ -139,9 +172,9 @@ Webサイトはモバイル、タブレット、デスクトップに対応：
 3. **著作権表記**
    - フッターの年号を適宜更新
 
-4. **スクリーンショット**
+4. **画像**
    - 実際のアプリスクリーンショットに差し替え推奨
-   - `website/assets/images/` に配置
+   - `web/assets/images/` に配置
 
 ## 🚀 公開後のチェックリスト
 

@@ -4,7 +4,7 @@
   "description": "Circlet - サークル管理アプリ",
   "scripts": {
     "prepare": "husky install",
-    "deploy:website": "cp -r website/* web/ && firebase deploy --only hosting"
+    "deploy:website": "firebase deploy --only hosting"
   },
   "lint-staged": {
     "lib/**/*.dart": [
