@@ -536,7 +536,12 @@ class CircleService {
   }
 
   // 招待リンクのURLを生成（Firebase Hosting URL）
+  // HTTPS URLへの切り替え方法は docs/universal-links-setup.md を参照
   String generateInviteUrl(String inviteId) {
+    // 本番環境（Apple Developer Program登録後）はHTTPS URLを使用
+    // return 'https://circlet-9ee47.web.app/invite/$inviteId';
+
+    // 開発環境ではカスタムURLスキームを使用（Apple Developer Program不要）
     return 'circlet://invite/$inviteId';
   }
 
