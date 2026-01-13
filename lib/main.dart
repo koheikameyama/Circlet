@@ -36,20 +36,26 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: navigatorKey,
-    initialLocation: '/login',
+    initialLocation: '/',
     redirect: (context, state) {
       final isLoggedIn = authState.value != null;
+      final currentLocation = state.matchedLocation;
+
+      // ルートパスへのアクセス
+      if (currentLocation == '/') {
+        return isLoggedIn ? '/circles' : '/login';
+      }
+
+      // 招待リンクは認証状態に関わらずアクセス可能
+      if (currentLocation.startsWith('/invite/')) {
+        return null;
+      }
 
       // 認証不要なページのリスト
       final authPages = ['/login', '/email-login', '/register'];
 
-      // 招待リンクは認証状態に関わらずアクセス可能
-      if (state.matchedLocation.startsWith('/invite/')) {
-        return null;
-      }
-
       // 認証不要なページへのアクセス
-      if (authPages.contains(state.matchedLocation)) {
+      if (authPages.contains(currentLocation)) {
         return isLoggedIn ? '/circles' : null;
       }
 
