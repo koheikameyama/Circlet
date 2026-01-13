@@ -89,31 +89,77 @@ final routerProvider = Provider<GoRouter>((ref) {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // .envファイルを読み込む
-  await dotenv.load(fileName: ".env");
+  try {
+    // .envファイルを読み込む（Web版以外）
+    try {
+      await dotenv.load(fileName: ".env");
+    } catch (e) {
+      AppLogger.info('.env file not found or cannot be loaded (this is normal for web): $e');
+    }
 
-  // Initialize Japanese locale for date formatting
-  await initializeDateFormatting('ja');
-  await initializeDateFormatting('ja_JP');
+    // Initialize Japanese locale for date formatting
+    await initializeDateFormatting('ja');
+    await initializeDateFormatting('ja_JP');
 
-  // LINE SDK初期化（Web版以外）
-  if (!kIsWeb) {
-    await LineSDK.instance.setup('2008326126');
+    // LINE SDK初期化（Web版以外）
+    if (!kIsWeb) {
+      await LineSDK.instance.setup('2008326126');
+    }
+
+    // Firebase初期化
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    // デバッグモードの場合、Emulatorに接続
+    FirebaseEmulatorConfig.connectToEmulator();
+
+    runApp(
+      const ProviderScope(
+        child: CircletApp(),
+      ),
+    );
+  } catch (e, stackTrace) {
+    AppLogger.error('Failed to initialize app: $e');
+    AppLogger.error('Stack trace: $stackTrace');
+
+    // エラー画面を表示
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'アプリの初期化に失敗しました',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'エラー: $e',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
-
-  // Firebase初期化
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  // デバッグモードの場合、Emulatorに接続
-  FirebaseEmulatorConfig.connectToEmulator();
-
-  runApp(
-    const ProviderScope(
-      child: CircletApp(),
-    ),
-  );
 }
 
 class CircletApp extends ConsumerStatefulWidget {

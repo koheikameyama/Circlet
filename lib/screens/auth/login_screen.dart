@@ -351,13 +351,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   height: 56,
                   child: OutlinedButton.icon(
                     onPressed: _isLoading ? null : _handleGoogleLogin,
-                    icon: Image.asset(
-                      'assets/google_logo.png',
-                      width: 24,
-                      height: 24,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.account_circle, size: 24),
-                    ),
+                    icon: const Icon(Icons.g_mobiledata, size: 28),
                     label: const Text(
                       'Googleでログイン',
                       style: TextStyle(
