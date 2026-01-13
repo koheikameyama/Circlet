@@ -1,10 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'logger_service.dart';
-import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
+
+// 条件付きインポート: Web版ではスタブを使用
+import 'line_sdk_stub.dart'
+    if (dart.library.io) 'package:flutter_line_sdk/flutter_line_sdk.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
