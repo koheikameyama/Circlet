@@ -23,6 +23,28 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      {
+        "source": "/login",
+        "destination": "/#/login",
+        "type": 301
+      },
+      {
+        "source": "/email-login",
+        "destination": "/#/email-login",
+        "type": 301
+      },
+      {
+        "source": "/register",
+        "destination": "/#/register",
+        "type": 301
+      },
+      {
+        "source": "/circles",
+        "destination": "/#/circles",
+        "type": 301
+      }
+    ],
     "rewrites": [
       {
         "source": "/invite/**",
