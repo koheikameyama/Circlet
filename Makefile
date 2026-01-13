@@ -32,3 +32,31 @@ devices: ## 利用可能なデバイスを表示
 build: ## リリースビルドを作成
 	@echo "🔨 リリースビルドを作成します..."
 	@$(FLUTTER) build ios --release
+
+web: ## Web版をローカルで起動（開発モード）
+	@echo "🌐 Web版をChromeで起動します..."
+	@$(FLUTTER) run -d chrome --web-port 8080
+
+web-build: ## Web版をビルド
+	@echo "📦 Web版をビルド中..."
+	@$(FLUTTER) build web --release
+	@echo "📄 静的ページをコピー中..."
+	@cp web/landing.html build/web/
+	@cp web/privacy.html build/web/
+	@cp web/invite.html build/web/
+	@cp -r web/assets build/web/ 2>/dev/null || true
+	@echo "✅ ビルド完了！"
+
+web-serve: ## ビルド済みWeb版をローカルサーバーで起動
+	@echo "🔨 Web版をビルド中..."
+	@make web-build
+	@echo "🌐 ローカルサーバーを起動します..."
+	@firebase serve --only hosting
+
+web-deploy: ## Web版をFirebase Hostingにデプロイ
+	@echo "🚀 Web版をデプロイします..."
+	@make web-build
+	@echo "📤 Firebase Hostingにアップロード中..."
+	@firebase deploy --only hosting
+	@echo "✅ デプロイ完了！"
+	@echo "🔗 URL: https://circlet-9ee47.web.app"

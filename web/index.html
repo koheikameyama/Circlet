@@ -1,145 +1,118 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
 
-    <!-- SEO Meta Tags -->
-    <meta name="description" content="Circlet - サークル管理を簡単に。イベント管理、メンバー管理、参加費管理を一つのアプリで。">
-    <meta name="keywords" content="サークル管理,イベント管理,メンバー管理,参加費管理,サークル,アプリ,スポーツサークル,学生サークル">
-    <meta name="author" content="Circlet">
-    <meta name="robots" content="index, follow">
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://circlet.jp/">
-    <meta property="og:title" content="Circlet - サークル管理アプリ">
-    <meta property="og:description" content="サークル運営を、もっとスマートに。イベント管理、メンバー管理、参加費管理を一つのアプリで。">
-    <meta property="og:image" content="https://circlet.jp/assets/images/ui.jpg">
-    <meta property="og:site_name" content="Circlet">
-    <meta property="og:locale" content="ja_JP">
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://circlet.jp/">
-    <meta name="twitter:title" content="Circlet - サークル管理アプリ">
-    <meta name="twitter:description" content="サークル運営を、もっとスマートに。イベント管理、メンバー管理、参加費管理を一つのアプリで。">
-    <meta name="twitter:image" content="https://circlet.jp/assets/images/ui.jpg">
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
 
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#0476b9">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Circlet - サークル管理を簡単に。イベント管理、メンバー管理、参加費管理を一つのアプリで。">
 
-    <title>Circlet - サークル管理アプリ</title>
-    <link rel="icon" type="image/jpeg" href="assets/images/logo.jpeg">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <script src="assets/js/common.js"></script>
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Circlet">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Circlet - サークル管理</title>
+  <link rel="manifest" href="manifest.json">
+
+  <script>
+    // The value below is injected by flutter build, do not touch.
+    var serviceWorkerVersion = null;
+  </script>
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
+
+  <!-- PWA Support -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0476b9">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://circlet.jp/">
+  <meta property="og:title" content="Circlet - サークル管理アプリ">
+  <meta property="og:description" content="サークル運営を、もっとスマートに。イベント管理、メンバー管理、参加費管理を一つのアプリで。">
+  <meta property="og:site_name" content="Circlet">
+  <meta property="og:locale" content="ja_JP">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Circlet - サークル管理アプリ">
+  <meta name="twitter:description" content="サークル運営を、もっとスマートに。イベント管理、メンバー管理、参加費管理を一つのアプリで。">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+    }
+
+    #loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #0476b9;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #loading-text {
+      margin-top: 20px;
+      color: #0476b9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div id="loading-text">読み込み中...</div>
+  </div>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <h2 class="hero-title">サークル運営を、もっとスマートに</h2>
-                <p class="hero-subtitle">
-                    イベント管理、メンバー管理、参加費管理。<br>
-                    サークル運営に必要なすべてを、一つのアプリで。
-                </p>
-                <div class="hero-buttons">
-                    <a href="#download" class="btn btn-primary">今すぐダウンロード</a>
-                    <a href="#features" class="btn btn-secondary">詳しく見る</a>
-                </div>
-            </div>
-            <div class="hero-image">
-                <img src="assets/images/ui.jpg" alt="Circlet アプリUI" class="phone-mockup">
-            </div>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section id="features" class="features">
-        <div class="container">
-            <h2 class="section-title">主な機能</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">📅</div>
-                    <h3>イベント管理</h3>
-                    <p>イベントの作成、編集、参加者管理を簡単に。定員設定やキャンセル待ちにも対応。</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">👥</div>
-                    <h3>メンバー管理</h3>
-                    <p>サークルメンバーの追加、権限管理、プロフィール設定を一元管理。</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">💰</div>
-                    <h3>参加費管理</h3>
-                    <p>イベントごとの参加費を設定し、支払い状況を簡単に追跡。</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔗</div>
-                    <h3>招待リンク</h3>
-                    <p>招待URLを生成してLINEやメールで共有。メンバー追加が簡単に。</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📍</div>
-                    <h3>場所検索</h3>
-                    <p>Google Places APIを活用した場所検索で、イベント会場を簡単に設定。</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔐</div>
-                    <h3>セキュアな認証</h3>
-                    <p>LINE認証により、安全かつ簡単にログイン。</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Use Cases Section -->
-    <section class="use-cases">
-        <div class="container">
-            <h2 class="section-title">こんなサークルに最適</h2>
-            <div class="use-cases-grid">
-                <div class="use-case">
-                    <h3>🎾 スポーツサークル</h3>
-                    <p>練習や試合の参加者管理、コート予約の調整に</p>
-                </div>
-                <div class="use-case">
-                    <h3>🎨 趣味サークル</h3>
-                    <p>定期的な集まりやワークショップの開催に</p>
-                </div>
-                <div class="use-case">
-                    <h3>🎓 学生サークル</h3>
-                    <p>部費管理やイベント企画の運営に</p>
-                </div>
-                <div class="use-case">
-                    <h3>🍺 飲み会グループ</h3>
-                    <p>定期的な集まりや会費の管理に</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Download Section -->
-    <section id="download" class="download">
-        <div class="container">
-            <h2 class="section-title">今すぐダウンロード</h2>
-            <p class="download-subtitle">iOS・Android対応</p>
-            <div class="download-buttons">
-                <a href="#" class="store-button app-store">
-                    <img src="assets/images/apple_store.svg" alt="Download on the App Store" class="store-badge">
-                </a>
-                <a href="#" class="store-button google-play">
-                    <img src="assets/images/google_play.png" alt="Get it on Google Play" class="store-badge">
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <script>
-        // ヘッダーとフッターを読み込み
-        loadHeader(true);
-        loadFooter();
-    </script>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
 </body>
 </html>

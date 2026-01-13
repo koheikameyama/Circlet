@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' as html show window;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
 import '../../main.dart';
 import '../../services/circle_service.dart';
 import '../../services/deep_link_service.dart';
+import '../../services/line_login_web.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -16,14 +20,81 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Web版でLINEログインのコールバックを処理
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkLineLoginCallback();
+      });
+    }
+  }
+
+  Future<void> _checkLineLoginCallback() async {
+    if (kIsWeb) {
+      final uri = Uri.parse(html.window.location.href);
+      if (uri.queryParameters.containsKey('code')) {
+        setState(() {
+          _isLoading = true;
+        });
+
+        try {
+          final lineLoginWeb = LineLoginWeb();
+          final credential = await lineLoginWeb.handleCallback();
+
+          if (credential != null && mounted) {
+            // ログイン成功
+            context.go('/circles');
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('LINEログインに失敗しました'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('エラーが発生しました: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } finally {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            // URLからcodeパラメータを削除
+            html.window.history.replaceState(null, '', '/login');
+          }
+        }
+      }
+    }
+  }
+
   Future<void> _handleLineLogin() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final authService = ref.read(authServiceProvider);
-      final credential = await authService.signInWithLine();
+      UserCredential? credential;
+
+      if (kIsWeb) {
+        // Web版: LINE Login Webを使用
+        final lineLoginWeb = LineLoginWeb();
+        lineLoginWeb.startLogin();
+        // リダイレクトされるので、ここでは何もしない
+        return;
+      } else {
+        // モバイル版: LINE SDKを使用
+        final authService = ref.read(authServiceProvider);
+        credential = await authService.signInWithLine();
+      }
 
       if (credential != null && mounted) {
         // 保留中の招待があるかチェック
@@ -232,7 +303,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 48),
 
-                // LINE ログインボタン
+                // LINE ログインボタン（Web版もモバイル版も同じ）
                 SizedBox(
                   width: double.infinity,
                   height: 56,

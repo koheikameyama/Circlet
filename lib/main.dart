@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -82,8 +83,10 @@ void main() async {
   await initializeDateFormatting('ja');
   await initializeDateFormatting('ja_JP');
 
-  // LINE SDK初期化
-  await LineSDK.instance.setup('2008326126');
+  // LINE SDK初期化（Web版以外）
+  if (!kIsWeb) {
+    await LineSDK.instance.setup('2008326126');
+  }
 
   // Firebase初期化
   await Firebase.initializeApp(
@@ -115,13 +118,15 @@ class _CircletAppState extends ConsumerState<CircletApp> {
   @override
   void initState() {
     super.initState();
-    // ウィジェットツリーが構築された後にディープリンクを初期化
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initDeepLinks();
-    });
+    // ウィジェットツリーが構築された後にディープリンクを初期化（Web版以外）
+    if (!kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initDeepLinks();
+      });
 
-    // フォアグラウンド通知のハンドリングを設定
-    _notificationService.setupForegroundNotificationHandling();
+      // フォアグラウンド通知のハンドリングを設定
+      _notificationService.setupForegroundNotificationHandling();
+    }
   }
 
   void _initDeepLinks() {
@@ -383,26 +388,28 @@ class _CircletAppState extends ConsumerState<CircletApp> {
     final router = ref.watch(routerProvider);
     final authState = ref.watch(authStateProvider);
 
-    // ログイン状態を監視して通知を初期化
-    ref.listen(authStateProvider, (previous, next) {
-      if (next.value != null && previous?.value == null) {
-        // ログインしたとき
-        _notificationService.initializeNotifications(next.value!.uid);
-        _isNotificationInitialized = true;
-      } else if (next.value == null) {
-        // ログアウトしたとき
-        _isNotificationInitialized = false;
-      }
-    });
-
-    // 既にログイン済みで、まだ初期化していない場合
-    if (authState.value != null && !_isNotificationInitialized) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_isNotificationInitialized) {
-          _notificationService.initializeNotifications(authState.value!.uid);
+    // ログイン状態を監視して通知を初期化（Web版以外）
+    if (!kIsWeb) {
+      ref.listen(authStateProvider, (previous, next) {
+        if (next.value != null && previous?.value == null) {
+          // ログインしたとき
+          _notificationService.initializeNotifications(next.value!.uid);
           _isNotificationInitialized = true;
+        } else if (next.value == null) {
+          // ログアウトしたとき
+          _isNotificationInitialized = false;
         }
       });
+
+      // 既にログイン済みで、まだ初期化していない場合
+      if (authState.value != null && !_isNotificationInitialized) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!_isNotificationInitialized) {
+            _notificationService.initializeNotifications(authState.value!.uid);
+            _isNotificationInitialized = true;
+          }
+        });
+      }
     }
 
     return MaterialApp.router(

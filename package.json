@@ -4,6 +4,10 @@
   "description": "Circlet - サークル管理アプリ",
   "scripts": {
     "prepare": "husky install",
+    "dev:web": "flutter run -d chrome --web-port 8080",
+    "serve:web": "npm run build:web && firebase serve --only hosting",
+    "build:web": "flutter build web --release && cp web/landing.html build/web/ && cp web/privacy.html build/web/ && cp web/invite.html build/web/ && cp -r web/assets build/web/",
+    "deploy:web": "npm run build:web && firebase deploy --only hosting",
     "deploy:website": "firebase deploy --only hosting"
   },
   "lint-staged": {

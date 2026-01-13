@@ -1,5 +1,6 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const axios = require('axios');
 
 admin.initializeApp();
 
@@ -248,3 +249,130 @@ exports.sendPaymentReminders = functions.pubsub
       return null;
     }
   });
+
+// LINE Login: Web版でLINEログインを処理
+exports.lineLogin = functions.https.onCall(async (data, context) => {
+  const { code, redirectUri } = data;
+
+  console.log('LINE Login request received', { redirectUri });
+
+  if (!code) {
+    throw new functions.https.HttpsError('invalid-argument', 'Code is required');
+  }
+
+  try {
+    // LINEの設定を取得（Firebase Functions Configから）
+    const lineConfig = functions.config().line;
+    if (!lineConfig || !lineConfig.channel_id || !lineConfig.channel_secret) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'LINE configuration not found. Please set line.channel_id and line.channel_secret'
+      );
+    }
+
+    const channelId = lineConfig.channel_id;
+    const channelSecret = lineConfig.channel_secret;
+
+    console.log('Using LINE Channel ID:', channelId);
+
+    // アクセストークンを取得
+    const tokenParams = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: redirectUri,
+      client_id: channelId,
+      client_secret: channelSecret,
+    });
+
+    const tokenResponse = await axios.post(
+      'https://api.line.me/oauth2/v2.1/token',
+      tokenParams.toString(),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      }
+    );
+
+    const { access_token } = tokenResponse.data;
+    console.log('Got LINE access token');
+
+    // ユーザープロフィールを取得
+    const profileResponse = await axios.get('https://api.line.me/v2/profile', {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+
+    const profile = profileResponse.data;
+    console.log('Got LINE profile:', profile.userId);
+
+    const lineUserId = profile.userId;
+    const displayName = profile.displayName;
+    const pictureUrl = profile.pictureUrl || null;
+
+    // FirebaseでユーザーIDを生成（LINE User IDベース）
+    const email = `${lineUserId}@line.user`;
+    const password = lineUserId; // LINE User IDをパスワードとして使用
+
+    let firebaseUser;
+    try {
+      // 既存ユーザーを取得
+      firebaseUser = await admin.auth().getUserByEmail(email);
+      console.log('Found existing Firebase user:', firebaseUser.uid);
+    } catch (error) {
+      // ユーザーが存在しない場合は新規作成
+      console.log('Creating new Firebase user');
+      firebaseUser = await admin.auth().createUser({
+        email: email,
+        password: password,
+        displayName: displayName,
+        photoURL: pictureUrl,
+      });
+      console.log('Created Firebase user:', firebaseUser.uid);
+    }
+
+    // Firestoreにユーザー情報を保存/更新
+    await admin.firestore().collection('users').doc(firebaseUser.uid).set({
+      uid: firebaseUser.uid,
+      lineUserId: lineUserId,
+      name: displayName,
+      profileImageUrl: pictureUrl,
+      email: email,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    console.log('Updated Firestore user document');
+
+    // カスタムトークンを生成
+    const customToken = await admin.auth().createCustomToken(firebaseUser.uid, {
+      lineUserId: lineUserId,
+      displayName: displayName,
+    });
+
+    console.log('Generated custom token');
+
+    return {
+      customToken: customToken,
+      profile: {
+        userId: lineUserId,
+        displayName: displayName,
+        pictureUrl: pictureUrl,
+      },
+      firebaseUid: firebaseUser.uid,
+    };
+  } catch (error) {
+    console.error('LINE login error:', error);
+
+    if (error.response) {
+      console.error('Response error:', error.response.data);
+      throw new functions.https.HttpsError(
+        'internal',
+        `LINE API error: ${error.response.data.error_description || error.response.data.error}`
+      );
+    }
+
+    throw new functions.https.HttpsError('internal', `LINE login failed: ${error.message}`);
+  }
+});

@@ -17,7 +17,7 @@
     ]
   },
   "hosting": {
-    "public": "web",
+    "public": "build/web",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -27,6 +27,14 @@
       {
         "source": "/invite/**",
         "destination": "/invite.html"
+      },
+      {
+        "source": "/landing",
+        "destination": "/landing.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
       }
     ]
   },
