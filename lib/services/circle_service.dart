@@ -1,10 +1,13 @@
-import 'dart:io' show Platform;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'logger_service.dart';
 import 'package:uuid/uuid.dart';
 import '../models/circle_model.dart';
 import '../models/invite_model.dart';
+
+// 条件付きインポート: Web版ではスタブを使用
+import 'platform_stub.dart'
+    if (dart.library.io) 'dart:io' show Platform;
 
 class CircleService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -540,9 +543,9 @@ class CircleService {
   // 招待リンクのURLを生成
   // プラットフォームによって異なるURLを返す
   String generateInviteUrl(String inviteId) {
-    // Web版: 常にHTTPS URLを使用
+    // Web版: ハッシュルーティング用のHTTPS URL
     if (kIsWeb) {
-      return 'https://circlet.jp/invite/$inviteId';
+      return 'https://circlet.jp/#/invite/$inviteId';
     }
 
     // iOS: HTTPS URL（Universal Links対応）

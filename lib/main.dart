@@ -22,6 +22,7 @@ import 'screens/auth/register_screen.dart';
 import 'screens/auth/circle_selection_screen.dart';
 import 'screens/participant/participant_home_screen.dart';
 import 'screens/admin/admin_home_screen.dart';
+import 'screens/invite/invite_handler_screen.dart';
 
 // 保留中の招待IDを管理するProvider
 final pendingInviteProvider = StateProvider<String?>((ref) => null);
@@ -41,6 +42,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 認証不要なページのリスト
       final authPages = ['/login', '/email-login', '/register'];
+
+      // 招待リンクは認証状態に関わらずアクセス可能
+      if (state.matchedLocation.startsWith('/invite/')) {
+        return null;
+      }
 
       // 認証不要なページへのアクセス
       if (authPages.contains(state.matchedLocation)) {
@@ -83,6 +89,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final circleId = state.pathParameters['circleId']!;
           return AdminHomeScreen(circleId: circleId);
+        },
+      ),
+      GoRoute(
+        path: '/invite/:inviteId',
+        builder: (context, state) {
+          final inviteId = state.pathParameters['inviteId']!;
+          return InviteHandlerScreen(inviteId: inviteId);
         },
       ),
     ],
