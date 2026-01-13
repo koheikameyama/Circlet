@@ -88,6 +88,7 @@ dependencies:
   go_router: ^13.0.0
   flutter_launcher_icons: ^0.14.4
   cloud_functions: ^5.1.0
+  google_sign_in: ^6.2.2
 
 dev_dependencies:
   flutter_test:

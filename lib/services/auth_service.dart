@@ -2,11 +2,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'logger_service.dart';
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // 現在のユーザーを取得
   User? get currentUser => _auth.currentUser;
@@ -75,6 +77,160 @@ class AuthService {
       AppLogger.error('LINE login error: $e');
       return null;
     }
+  }
+
+  // Googleログイン
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      AppLogger.info('Starting Google Sign-In');
+
+      // Google Sign-Inを開始
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        AppLogger.info('Google Sign-In cancelled by user');
+        return null;
+      }
+
+      // 認証情報を取得
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Firebaseの認証情報を作成
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Firebaseにサインイン
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      AppLogger.info('Google Sign-In successful: ${userCredential.user?.uid}');
+
+      // ユーザー情報をFirestoreに保存
+      if (userCredential.user != null) {
+        await _saveGoogleUserToFirestore(
+          userId: userCredential.user!.uid,
+          email: userCredential.user!.email ?? '',
+          name: userCredential.user!.displayName ?? 'Unknown User',
+          profileImageUrl: userCredential.user!.photoURL,
+        );
+      }
+
+      return userCredential;
+    } catch (e) {
+      AppLogger.error('Google Sign-In error: $e');
+      return null;
+    }
+  }
+
+  // メールアドレスとパスワードでサインイン
+  Future<UserCredential?> signInWithEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      AppLogger.info('Signing in with email: $email');
+
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      AppLogger.info('Email/Password Sign-In successful: ${userCredential.user?.uid}');
+
+      return userCredential;
+    } catch (e) {
+      AppLogger.error('Email/Password Sign-In error: $e');
+      rethrow;
+    }
+  }
+
+  // メールアドレスとパスワードで新規登録
+  Future<UserCredential?> signUpWithEmailPassword({
+    required String email,
+    required String password,
+    required String name,
+  }) async {
+    try {
+      AppLogger.info('Creating account with email: $email');
+
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      AppLogger.info('Account created: ${userCredential.user?.uid}');
+
+      // ユーザー情報をFirestoreに保存
+      if (userCredential.user != null) {
+        await _saveEmailUserToFirestore(
+          userId: userCredential.user!.uid,
+          email: email,
+          name: name,
+        );
+      }
+
+      return userCredential;
+    } catch (e) {
+      AppLogger.error('Sign-Up error: $e');
+      rethrow;
+    }
+  }
+
+  // Googleユーザー情報をFirestoreに保存
+  Future<void> _saveGoogleUserToFirestore({
+    required String userId,
+    required String email,
+    required String name,
+    String? profileImageUrl,
+  }) async {
+    final userDoc = _firestore.collection('users').doc(userId);
+    final docSnapshot = await userDoc.get();
+
+    if (!docSnapshot.exists) {
+      // 新規ユーザーの場合
+      final user = UserModel(
+        userId: userId,
+        name: name,
+        email: email,
+        profileImageUrl: profileImageUrl,
+        circleIds: [],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await userDoc.set(user.toFirestore());
+      AppLogger.info('Created new Google user in Firestore');
+    } else {
+      // 既存ユーザーの場合は更新日時のみ更新
+      await userDoc.update({
+        'updatedAt': Timestamp.now(),
+        'profileImageUrl': profileImageUrl,
+        'name': name,
+        'email': email,
+      });
+      AppLogger.info('Updated existing Google user in Firestore');
+    }
+  }
+
+  // メールユーザー情報をFirestoreに保存
+  Future<void> _saveEmailUserToFirestore({
+    required String userId,
+    required String email,
+    required String name,
+  }) async {
+    final userDoc = _firestore.collection('users').doc(userId);
+
+    final user = UserModel(
+      userId: userId,
+      name: name,
+      email: email,
+      circleIds: [],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    await userDoc.set(user.toFirestore());
+    AppLogger.info('Created new email/password user in Firestore');
   }
 
   // LINE IDで既存ユーザーを検索
@@ -347,6 +503,7 @@ class AuthService {
   Future<void> signOut() async {
     try {
       await LineSDK.instance.logout();
+      await _googleSignIn.signOut();
       await _auth.signOut();
     } catch (e) {
       AppLogger.error('Sign out error: $e');

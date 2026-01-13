@@ -14,6 +14,8 @@ import 'services/circle_service.dart';
 import 'services/logger_service.dart';
 import 'services/notification_service.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/email_login_screen.dart';
+import 'screens/auth/register_screen.dart';
 import 'screens/auth/circle_selection_screen.dart';
 import 'screens/participant/participant_home_screen.dart';
 import 'screens/admin/admin_home_screen.dart';
@@ -34,8 +36,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isLoggedIn = authState.value != null;
 
-      // ログイン画面へのアクセス
-      if (state.matchedLocation == '/login') {
+      // 認証不要なページのリスト
+      final authPages = ['/login', '/email-login', '/register'];
+
+      // 認証不要なページへのアクセス
+      if (authPages.contains(state.matchedLocation)) {
         return isLoggedIn ? '/circles' : null;
       }
 
@@ -50,6 +55,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/email-login',
+        builder: (context, state) => const EmailLoginScreen(),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
         path: '/circles',

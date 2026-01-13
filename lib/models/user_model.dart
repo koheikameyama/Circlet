@@ -8,7 +8,7 @@ enum UserRole {
 class UserModel {
   final String userId;
   final String name;
-  final String lineUserId;
+  final String? lineUserId;  // オプショナルに変更
   final String? profileImageUrl;
   final String? email;
   final List<String> circleIds;
@@ -18,7 +18,7 @@ class UserModel {
   UserModel({
     required this.userId,
     required this.name,
-    required this.lineUserId,
+    this.lineUserId,  // オプショナルに変更
     this.profileImageUrl,
     this.email,
     required this.circleIds,

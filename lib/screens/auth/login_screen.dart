@@ -45,7 +45,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
           if (credential != null && mounted) {
             // ログイン成功
-            context.go('/circles');
+            _handlePostLogin(credential);
           } else if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -97,19 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
 
       if (credential != null && mounted) {
-        // 保留中の招待があるかチェック
-        final pendingInviteId = ref.read(pendingInviteProvider);
-
-        if (pendingInviteId != null) {
-          // 保留中の招待をクリア
-          ref.read(pendingInviteProvider.notifier).state = null;
-
-          // 招待確認ダイアログを表示
-          await _showInviteConfirmationDialog(pendingInviteId);
-        } else {
-          // 招待がない場合は通常通りサークル選択画面へ
-          context.go('/circles');
-        }
+        _handlePostLogin(credential);
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -133,6 +121,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authService = ref.read(authServiceProvider);
+      final credential = await authService.signInWithGoogle();
+
+      if (credential != null && mounted) {
+        _handlePostLogin(credential);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Googleログインに失敗しました'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('エラーが発生しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // ログイン後の処理（招待確認など）
+  Future<void> _handlePostLogin(UserCredential credential) async {
+    // 保留中の招待があるかチェック
+    final pendingInviteId = ref.read(pendingInviteProvider);
+
+    if (pendingInviteId != null) {
+      // 保留中の招待をクリア
+      ref.read(pendingInviteProvider.notifier).state = null;
+
+      // 招待確認ダイアログを表示
+      await _showInviteConfirmationDialog(pendingInviteId);
+    } else {
+      // 招待がない場合は通常通りサークル選択画面へ
+      context.go('/circles');
     }
   }
 
@@ -271,7 +313,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       body: SafeArea(
         child: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -303,7 +345,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 48),
 
-                // LINE ログインボタン（Web版もモバイル版も同じ）
+                // Google ログインボタン
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _handleGoogleLogin,
+                    icon: Image.asset(
+                      'assets/google_logo.png',
+                      width: 24,
+                      height: 24,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.account_circle, size: 24),
+                    ),
+                    label: const Text(
+                      'Googleでログイン',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.black87,
+                      side: BorderSide(color: Colors.grey[300]!),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // LINE ログインボタン
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -318,7 +391,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Icon(Icons.login),
+                        : const Icon(Icons.chat_bubble),
                     label: Text(
                       _isLoading ? 'ログイン中...' : 'LINEでログイン',
                       style: const TextStyle(
@@ -335,11 +408,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                // メール/パスワード ログインボタン
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : () => context.go('/email-login'),
+                    icon: const Icon(Icons.email),
+                    label: const Text(
+                      'メールアドレスでログイン',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 24),
+
+                // 新規登録リンク
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'アカウントをお持ちでない方は',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.go('/register'),
+                      child: const Text('新規登録'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
 
                 // 説明文
                 Text(
-                  'LINEアカウントでログインすると、\nサークルの管理や参加が可能になります',
+                  'ログインすると、サークルの管理や\n参加が可能になります',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.grey[600],
