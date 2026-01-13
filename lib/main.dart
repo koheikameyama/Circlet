@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 // 条件付きインポート: Web版ではスタブを使用
 import 'services/line_sdk_stub.dart'
@@ -110,6 +111,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Web版でPath URL Strategyを使用（ハッシュなしのURL）
+  if (kIsWeb) {
+    usePathUrlStrategy();
+  }
 
   try {
     // .envファイルを読み込む（Web版以外）

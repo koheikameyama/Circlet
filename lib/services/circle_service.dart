@@ -543,13 +543,8 @@ class CircleService {
   // 招待リンクのURLを生成
   // プラットフォームによって異なるURLを返す
   String generateInviteUrl(String inviteId) {
-    // Web版: ハッシュルーティング用のHTTPS URL
-    if (kIsWeb) {
-      return 'https://circlet.jp/#/invite/$inviteId';
-    }
-
-    // iOS: HTTPS URL（Universal Links対応）
-    if (Platform.isIOS) {
+    // Web版・iOS版: HTTPS URL（Path URL Strategy / Universal Links対応）
+    if (kIsWeb || Platform.isIOS) {
       return 'https://circlet.jp/invite/$inviteId';
     }
 
