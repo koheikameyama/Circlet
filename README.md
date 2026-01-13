@@ -2,6 +2,9 @@
 
 既存サークルの運営を効率化するためのFlutterアプリです。メンバー管理、イベント管理、参加費管理、通知、カレンダー連携を一括管理できます。
 
+**🌐 Web版対応**: スマホ最適化されたWeb版でブラウザからもアクセス可能
+**📱 マルチプラットフォーム**: iOS、Android、Webに対応
+
 ## 主な機能
 
 ### 運営側（管理者）機能
@@ -68,6 +71,11 @@
   - 未払い人数
   - 合計金額の集計
 
+#### 通知機能
+- **イベントリマインダー**: 毎日朝9時に翌日のイベント参加者に自動通知
+- **支払いリマインダー**: イベント終了1時間後に未払い参加者と管理者に通知
+- **Firebase Cloud Messaging**: プッシュ通知による即時配信
+
 ### 参加者側（メンバー）機能
 
 #### サークル
@@ -92,20 +100,35 @@
 #### 支払い
 - 自分の支払いステータスの確認
 
+#### 通知
+- イベント前日のリマインダー受信
+- 支払いリマインダー受信
+- キャンセル待ちからの繰り上げ通知（今後実装予定）
+
 ## 技術スタック
 
+- **プラットフォーム**: iOS、Android、Web（PWA対応）
 - **フレームワーク**: Flutter 3.19.5
 - **状態管理**: Riverpod 2.4.9
   - StreamProvider.autoDispose による効率的なリソース管理
   - ログアウト時の自動クリーンアップ
-- **ルーティング**: go_router 13.0.0
-- **認証**: Firebase Auth
+- **ルーティング**: go_router 13.0.0（hash routing for Web）
+- **認証**:
+  - Firebase Auth
+  - LINE Login（モバイル: flutter_line_sdk、Web: Firebase Functions経由）
 - **データベース**: Cloud Firestore
   - リアルタイムストリーム更新
   - セキュリティルール適用
+- **サーバーレス**: Firebase Cloud Functions
+  - LINE Login トークン交換（Web版）
+  - 通知配信（FCM）
+  - スケジュール実行（Cloud Scheduler）
+- **通知**: Firebase Cloud Messaging
+  - イベントリマインダー（毎日朝9時）
+  - 支払いリマインダー（イベント終了1時間後）
+- **ホスティング**: Firebase Hosting（Web版）
 - **地図・場所検索**: Google Places API
-- **通知**: Firebase Cloud Messaging（予定）
-- **カレンダー**: device_calendar 4.3.3（予定）
+- **カレンダー**: device_calendar 4.3.3（モバイルのみ）
 
 ## プロジェクト構成
 
