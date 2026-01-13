@@ -90,7 +90,7 @@
         <a href="index.html" class="back-link">← ホームに戻る</a>
         
         <h1>プライバシーポリシー</h1>
-        <p class="update-date">最終更新日：2025年1月30日</p>
+        <p class="update-date">最終更新日：2026年1月13日</p>
 
         <p>
             Circlet（以下「当アプリ」といいます）は、ユーザーの皆様の個人情報の保護を重要視し、
@@ -103,10 +103,15 @@
         <h3>1.1 ユーザー登録情報</h3>
         <p>当アプリでは、以下の情報を収集します：</p>
         <ul>
+            <li><strong>Google認証情報</strong>：Googleアカウントのメールアドレス、表示名、プロフィール画像</li>
             <li><strong>LINE認証情報</strong>：LINE ユーザーID、表示名、プロフィール画像</li>
-            <li><strong>メールアドレス</strong>：通知やサポート目的で使用</li>
+            <li><strong>メール/パスワード認証情報</strong>：メールアドレス、暗号化されたパスワード、表示名</li>
             <li><strong>ユーザーID</strong>：Firebase Authenticationにより自動生成されるID</li>
         </ul>
+        <p>
+            ※ ユーザーは、Google、LINE、メール/パスワードのいずれかの方法で登録できます。
+            収集される情報は選択した認証方法により異なります。
+        </p>
 
         <h3>1.2 サークル・イベント情報</h3>
         <ul>
@@ -150,14 +155,20 @@
         <h3>3.2 第三者サービスの利用</h3>
         <p>当アプリは、以下の第三者サービスを利用しています：</p>
         <ul>
-            <li><strong>Firebase (Google)</strong>：認証、データベース、ストレージ、通知機能
+            <li><strong>Firebase (Google)</strong>：認証、データベース、ストレージ、通知機能、Cloud Functions
                 <br><a href="https://firebase.google.com/support/privacy" target="_blank" style="color: var(--primary-color);">Firebase プライバシーポリシー</a>
             </li>
-            <li><strong>LINE</strong>：ユーザー認証
+            <li><strong>Google Sign-In</strong>：Googleアカウントによるユーザー認証
+                <br><a href="https://policies.google.com/privacy" target="_blank" style="color: var(--primary-color);">Google プライバシーポリシー</a>
+            </li>
+            <li><strong>LINE</strong>：LINEアカウントによるユーザー認証
                 <br><a href="https://line.me/ja/terms/policy/" target="_blank" style="color: var(--primary-color);">LINE プライバシーポリシー</a>
             </li>
             <li><strong>Google Places API</strong>：場所検索機能
                 <br><a href="https://policies.google.com/privacy" target="_blank" style="color: var(--primary-color);">Google プライバシーポリシー</a>
+            </li>
+            <li><strong>Firebase Cloud Messaging</strong>：プッシュ通知の配信
+                <br><a href="https://firebase.google.com/support/privacy" target="_blank" style="color: var(--primary-color);">Firebase プライバシーポリシー</a>
             </li>
         </ul>
 
@@ -205,9 +216,14 @@
 
         <h2>8. Cookieおよびトラッキング技術</h2>
         <p>
-            当アプリ（モバイルアプリ）では、Webブラウザ用のCookieは使用していません。
-            ただし、Firebase等の第三者サービスが使用する識別子（デバイスID等）が
-            利用される場合があります。
+            当サービスはモバイルアプリ版とWeb版を提供しています。
+        </p>
+        <ul>
+            <li><strong>モバイルアプリ版</strong>：Webブラウザ用のCookieは使用していません。Firebase等の第三者サービスが使用する識別子（デバイスID等）が利用される場合があります。</li>
+            <li><strong>Web版</strong>：ブラウザのローカルストレージおよびセッションストレージを使用して、ログイン状態の維持や認証情報の一時保存を行います。また、Firebase等の第三者サービスがCookieを使用する場合があります。</li>
+        </ul>
+        <p>
+            これらの技術は、サービスの提供に必要不可欠なものであり、ユーザーエクスペリエンスの向上に使用されます。
         </p>
 
         <h2>9. プライバシーポリシーの変更</h2>
