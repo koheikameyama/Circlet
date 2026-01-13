@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'logger_service.dart';
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -502,11 +503,18 @@ class AuthService {
   // ログアウト
   Future<void> signOut() async {
     try {
-      await LineSDK.instance.logout();
+      // Web版以外でLINEログアウト
+      if (!kIsWeb) {
+        await LineSDK.instance.logout();
+      }
+      // Googleサインアウト
       await _googleSignIn.signOut();
+      // Firebaseサインアウト
       await _auth.signOut();
+      AppLogger.info('Successfully signed out');
     } catch (e) {
       AppLogger.error('Sign out error: $e');
+      rethrow;
     }
   }
 
