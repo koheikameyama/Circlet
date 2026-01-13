@@ -1,6 +1,6 @@
-import 'dart:io' show Platform, File;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +17,10 @@ import '../../services/circle_service.dart';
 import '../../services/logger_service.dart';
 import 'admin_event_detail_screen.dart';
 import 'admin_event_create_screen.dart';
+
+// 条件付きインポート: Web版ではスタブを使用
+import '../../services/platform_stub.dart'
+    if (dart.library.io) 'dart:io' show Platform;
 
 class AdminHomeScreen extends ConsumerStatefulWidget {
   final String circleId;
@@ -159,13 +163,18 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
     final circleService = CircleService();
     final currentUser = ref.read(authStateProvider).value;
 
+    AppLogger.info('_showInviteLinkDialog called with circleId: $circleId');
+
     if (currentUser == null) {
+      AppLogger.error('Current user is null');
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ログインが必要です')),
       );
       return;
     }
+
+    AppLogger.info('Current user: ${currentUser.uid}');
 
     // ローディング表示
     showDialog(
@@ -174,7 +183,10 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
+    AppLogger.info('Loading dialog shown');
+
     try {
+      AppLogger.info('Creating invite link...');
       // 招待リンクを作成（15秒でタイムアウト）
       final invite = await circleService
           .createInviteLink(
@@ -185,9 +197,12 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
           .timeout(
         const Duration(seconds: 15),
         onTimeout: () {
+          AppLogger.error('Create invite link timed out');
           throw Exception('招待リンクの作成がタイムアウトしました。インターネット接続を確認してください。');
         },
       );
+
+      AppLogger.info('Invite link created: ${invite.inviteId}');
 
       final inviteUrl = circleService.generateInviteUrl(invite.inviteId);
 
@@ -1656,6 +1671,7 @@ class _AdminCalendarView extends ConsumerWidget {
 }
 
 // グローバル関数：プロフィール画像オプション表示
+// TODO: Web版対応のため一時的に無効化
 void _showProfileImageOptions(
   BuildContext context,
   WidgetRef ref,
@@ -1663,6 +1679,16 @@ void _showProfileImageOptions(
   String userId,
   String? currentImageUrl,
 ) {
+  // 現在未対応
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('画像アップロード機能は現在準備中です'),
+      duration: Duration(seconds: 3),
+    ),
+  );
+  return;
+
+  /* Web版対応後に有効化
   showModalBottomSheet(
     context: context,
     builder: (sheetContext) => SafeArea(
@@ -1711,9 +1737,11 @@ void _showProfileImageOptions(
       ),
     ),
   );
+  */
 }
 
 // グローバル関数：プロフィール画像の選択とアップロード
+// TODO: Web版対応のため一時的に無効化
 Future<void> _pickAndUploadProfileImage(
   BuildContext context,
   WidgetRef ref,
@@ -1721,6 +1749,10 @@ Future<void> _pickAndUploadProfileImage(
   String userId,
   ImageSource source,
 ) async {
+  // 現在未対応
+  return;
+
+  /* Web版対応後に有効化
   try {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
@@ -1743,46 +1775,51 @@ Future<void> _pickAndUploadProfileImage(
       ),
     );
 
-    final imageFile = File(pickedFile.path);
+    // Mobile-only code (File is not available on Web)
+    if (!kIsWeb) {
+      final imageFile = File(pickedFile.path);
 
-    // Upload image
-    final uploadImage = ref.read(uploadProfileImageProvider);
-    final imageUrl = await uploadImage(
-      circleId: circleId,
-      userId: userId,
-      imageFile: imageFile,
-    );
+      // Upload image
+      final uploadImage = ref.read(uploadProfileImageProvider);
+      final imageUrl = await uploadImage(
+        circleId: circleId,
+        userId: userId,
+        imageFile: imageFile,
+      );
 
-    if (imageUrl == null) {
-      throw Exception('画像のアップロードに失敗しました');
+      if (imageUrl == null) {
+        throw Exception('画像のアップロードに失敗しました');
+      }
+
+      // Update member profile image URL
+      final updateMemberProfileImage =
+          ref.read(updateMemberProfileImageProvider);
+      await updateMemberProfileImage(
+        circleId: circleId,
+        userId: userId,
+        profileImageUrl: imageUrl,
+      );
+
+      if (!context.mounted) return;
+
+      // Dismiss loading indicator
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('プロフィール画像を更新しました'),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
-
-    // Update member profile image URL
-    final updateMemberProfileImage =
-        ref.read(updateMemberProfileImageProvider);
-    await updateMemberProfileImage(
-      circleId: circleId,
-      userId: userId,
-      profileImageUrl: imageUrl,
-    );
-
-    if (!context.mounted) return;
-
-    // Dismiss loading indicator
-    Navigator.pop(context);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('プロフィール画像を更新しました'),
-        backgroundColor: Colors.green,
-      ),
-    );
   } catch (e) {
     AppLogger.error('Error uploading profile image: $e');
     if (!context.mounted) return;
 
     // Dismiss loading indicator if still showing
-    Navigator.of(context, rootNavigator: true).pop();
+    try {
+      Navigator.of(context, rootNavigator: true).pop();
+    } catch (_) {}
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1791,15 +1828,21 @@ Future<void> _pickAndUploadProfileImage(
       ),
     );
   }
+  */
 }
 
 // グローバル関数：プロフィール画像の削除
+// TODO: Web版対応のため一時的に無効化
 Future<void> _removeProfileImage(
   BuildContext context,
   WidgetRef ref,
   String circleId,
   String userId,
 ) async {
+  // 現在未対応
+  return;
+
+  /* Web版対応後に有効化
   try {
     final updateMemberProfileImage =
         ref.read(updateMemberProfileImageProvider);
@@ -1828,4 +1871,5 @@ Future<void> _removeProfileImage(
       ),
     );
   }
+  */
 }
